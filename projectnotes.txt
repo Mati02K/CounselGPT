@@ -1,0 +1,39 @@
+There are 3 components for the model :-
+
+1.LORA :- Main thing which gives domain knowledge to our chatbot and makes it Legal relevant. Train a small layer
+which would affect the entire model and make it legal relevant. This is done on separate dataset. We will get adapters
+as output. We can also convert it into a model. this should be done on a normal model not a quantized one.
+
+2. RAG :- RAG is to provide extra context to this model, lets say our LORA model is trained upon California laws in
+whole and we can RAG with driving laws and show it to user with context. Context is done through vector DB
+where we can get top k searches and provide them as context in our prompt
+
+3. Quantization :- WE will combine the adapater and normal model into giving us the 16 or 32 bit precision. 
+This large bit will be quantized into 8 or 4 bit.
+
+
+
+This dataset looks promising :- https://huggingface.co/datasets/ArchitRastogi/USLawQA
+This is based on scraping the https://uscode.house.gov/ website
+
+
+
+Chain-of-thought (COT) = model writing its thinking steps.
+Why use it?
+
+Because legal interpretation is multi-step reasoning, and CoT teaches the model how to think about:
+
+definitions
+
+clauses
+
+rights
+
+obligations
+
+exceptions
+
+Which directly improves the accuracy of your final legal chatbot.
+
+
+Just for better Chain Of Thought and understanding the text we are improving it
