@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: counselgpt-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: counselgpt-api
+  template:
+    metadata:
+      labels:
+        app: counselgpt-api
+    spec:
+      initContainers:
+      - name: download-model
+        image: google/cloud-sdk:slim
+        command:
+        - sh
+        - -c
+        - |
+          if [ ! -f /models/llama-2-7b-chat.Q4_K_M.gguf ]; then
+            echo "Downloading model..."
+            gsutil cp gs://counselgpt-models/llama-2-7b-chat.Q4_K_M.gguf /models/
+            echo "Download complete"
+          else
+            echo "Model already exists, skipping download"
+          fi
+        resources:
+          requests:
+            ephemeral-storage: "5Gi"  # ADD THIS
+          limits:
+            ephemeral-storage: "6Gi"  # ADD THIS
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+      
+      containers:
+      - name: counselgpt-api
+        image: IMAGE_REPLACE_ME
+        
+        resources:
+          requests:
+            cpu: "4"
+            memory: "8Gi"
+            ephemeral-storage: "5Gi"  # ADD THIS
+          limits:
+            cpu: "8"
+            memory: "16Gi"
+            ephemeral-storage: "6Gi"  # ADD THIS
+        
+        ports:
+        - containerPort: 8000
+        
+        env:
+        - name: MODEL_PATH
+          value: "/models/llama-2-7b-chat.Q4_K_M.gguf"
+        - name: REDIS_URL
+          value: "redis://counselgpt-redis:6379"
+        
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+      
+      volumes:
+      - name: model-storage
+        emptyDir:
+          sizeLimit: 10Gi

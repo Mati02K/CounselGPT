@@ -1,0 +1,42 @@
+steps:
+  # 1. Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi:$SHORT_SHA',
+        './deployment'
+      ]
+
+  # 2. Push Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push',
+        'us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi:$SHORT_SHA'
+      ]
+
+  # 3. Substitute image SHA inside deployment.yaml
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: bash
+    args:
+      [
+        '-c',
+        "sed -i 's#IMAGE_REPLACE_ME#us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi:$SHORT_SHA#g' k8s/gcp/deployment.yaml"
+      ]
+
+  # 4. Deploy K8s manifests to the cluster
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      [
+        'apply',
+        '-f',
+        'k8s/gcp/'
+      ]
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-west2'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=counselgpt-cluster'
+
+images:
+  - 'us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi:$SHORT_SHA'

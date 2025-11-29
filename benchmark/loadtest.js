@@ -8,7 +8,8 @@ export const options = {
   timeout: '120s',        // allow long inference
 };
 
-const API_URL = "https://counselgpt-mathesh.nrp-nautilus.io/infer";
+// const API_URL = "https://counselgpt-mathesh.nrp-nautilus.io/infer";
+const API_URL = "http://136.110.236.198/infer";
 
 // Five prompts to avoid Redis cache 
 const prompts = [
