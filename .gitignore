@@ -1,3 +1,5 @@
 legalenv/
 training/
 k8s/nautilus/ceph-s3-secret.yaml
+deployment/models/
+*.gguf

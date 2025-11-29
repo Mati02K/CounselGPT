@@ -1,3 +1,9 @@
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _IMAGE_PATH: "us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi"
+
 steps:
   # 1. Build Docker image
   - name: 'gcr.io/cloud-builders/docker'
@@ -5,38 +11,38 @@ steps:
       [
         'build',
         '-t',
-        'us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi:$SHORT_SHA',
-        './deployment'
+        '${_IMAGE_PATH}:${SHORT_SHA}',
+        'deployment'
       ]
 
-  # 2. Push Docker image to Artifact Registry
+  # 2. Push image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'push',
-        'us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi:$SHORT_SHA'
+        '${_IMAGE_PATH}:${SHORT_SHA}'
       ]
 
-  # 3. Substitute image SHA inside deployment.yaml
+  # 3. Set Kube credentials
   - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      [
+        'container',
+        'clusters',
+        'get-credentials',
+        'counselgpt-cluster',
+        '--region',
+        'us-west2'
+      ]
+
+  # 4. Apply manifests with image override
+  - name: "gcr.io/cloud-builders/kubectl"
     entrypoint: bash
     args:
-      [
-        '-c',
-        "sed -i 's#IMAGE_REPLACE_ME#us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi:$SHORT_SHA#g' k8s/gcp/deployment.yaml"
-      ]
-
-  # 4. Deploy K8s manifests to the cluster
-  - name: 'gcr.io/cloud-builders/kubectl'
-    args:
-      [
-        'apply',
-        '-f',
-        'k8s/gcp/'
-      ]
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=us-west2'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=counselgpt-cluster'
+      - "-c"
+      - |
+        kubectl set image deployment/counselgpt-api counselgpt-api=${_IMAGE_PATH}:${SHORT_SHA} --record
+        kubectl apply -f k8s/gcp/
 
 images:
-  - 'us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi:$SHORT_SHA'
+  - '${_IMAGE_PATH}:${SHORT_SHA}'
