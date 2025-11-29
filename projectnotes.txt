@@ -37,3 +37,12 @@ Which directly improves the accuracy of your final legal chatbot.
 
 
 Just for better Chain Of Thought and understanding the text we are improving it
+
+
+Use this :- https://arxiv.org/abs/2308.11462  (LegalBench)
+and MMLU for evaluation
+
+Using this for Nautilus :-
+
+https://nrp.ai/documentation/userdocs/start/getting-started/
+

@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: counselgpt-redis-mthiruma
+  namespace: cse239fall2025
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: counselgpt-redis-mthiruma
+  template:
+    metadata:
+      labels:
+        app: counselgpt-redis-mthiruma
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        # Pure cache → no persistence needed
+        args: ["redis-server", "--save", "", "--appendonly", "no"]

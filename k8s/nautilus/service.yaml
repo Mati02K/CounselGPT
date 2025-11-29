@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: counselgpt-api-mthiruma
+  namespace: cse239fall2025
+spec:
+  type: ClusterIP
+  selector:
+    app: counselgpt-api-mthiruma
+  ports:
+  - port: 8000
+    targetPort: 8000

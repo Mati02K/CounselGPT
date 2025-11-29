@@ -1,0 +1,47 @@
+FastAPI Service (one container):
+├── ModelManager class (loads/manages 4-bit & 8-bit models)
+├── RAGEngine class (handles vector DB, retrieval)
+├── app.py (API routes)
+└── config.py (prompts, settings)
+
+API:
+POST /chat
+Body: { "document": "...", "prompt": "...", "model_type": "4bit" }
+Response: { "answer": "..." }
+
+
+
+Used this to install nvidia support for docker images :- https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+
+
+checking the logs :- kubectl logs counselgpt-api-mthiruma-78bff478b7-47tg8 -n cse239fall2025 --tail=200
+
+
+running locally :-
+
+docker build
+
+and then show the location to the image 
+
+docker run --rm \
+  --name counselgpt-api \
+  --gpus all \
+  -p 8000:8000 \
+  -e MODEL_PATH=/models/llama-2-7b-chat.Q4_K_M.gguf \
+  -e REDIS_URL=redis://redis-cache:6379 \
+  --network counselgpt-net \
+  -v /home/mathesh/Documents/code/CounselGPT/deployment/models:/models \
+  mathesh0208/counselgptapi:v6
+
+docker run -d \
+  --name redis-cache \
+  --network counselgpt-net \
+  -p 6379:6379 \
+  redis:7-alpine
+
+Test nautilus :-
+curl -X POST https://counselgpt-mathesh.nrp-nautilus.io/infer \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Hello"}'
+
+

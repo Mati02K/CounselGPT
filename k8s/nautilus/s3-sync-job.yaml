@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s3-sync-mthiruma
+  namespace: cse239fall2025
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: s3-sync
+        image: ubuntu:22.04
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "256Mi"
+          limits:
+            cpu: "100m"
+            memory: "512Mi"
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          apt-get update && apt-get install -y s3cmd ca-certificates curl
+
+          echo "[default]" > /root/.s3cfg
+          echo "access_key = ${S3_ACCESS_KEY}" >> /root/.s3cfg
+          echo "secret_key = ${S3_SECRET_KEY}" >> /root/.s3cfg
+          echo "host_base = https://s3-west.nrp-nautilus.io" >> /root/.s3cfg
+          echo "host_bucket = https://s3-west.nrp-nautilus.io" >> /root/.s3cfg
+          echo "use_https = True" >> /root/.s3cfg
+          echo "signature_v2 = False" >> /root/.s3cfg
+
+          echo "Downloading GGUF model from Ceph S3…"
+
+          s3cmd get \
+            s3://${S3_BUCKET}/${S3_MODEL_KEY} \
+            /models/${S3_MODEL_KEY} \
+            --force
+
+          echo "Model sync complete. File in CephFS: /models/${S3_MODEL_KEY}"
+
+        env:
+        - name: S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ceph-s3-credentials
+              key: S3_ACCESS_KEY
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ceph-s3-credentials
+              key: S3_SECRET_KEY
+        - name: S3_BUCKET
+          value: "counselgpt-models"
+        - name: S3_MODEL_KEY
+          value: "llama-2-7b-chat.Q4_K_M.gguf"
+
+        volumeMounts:
+        - name: model-volume
+          mountPath: /models
+
+      volumes:
+      - name: model-volume
+        persistentVolumeClaim:
+          claimName: counselgpt-models-pvc-mthiruma

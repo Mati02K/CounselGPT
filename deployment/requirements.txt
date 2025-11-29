@@ -1,0 +1,6 @@
+fastapi
+gunicorn
+uvicorn[standard]
+pydantic
+llama-cpp-python[cuda]
+redis   
