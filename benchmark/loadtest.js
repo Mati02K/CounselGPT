@@ -9,7 +9,7 @@ export const options = {
 };
 
 // const API_URL = "https://counselgpt-mathesh.nrp-nautilus.io/infer";
-const API_URL = "http://136.110.236.198/infer";
+const API_URL = "http://34.36.112.38:80/infer";
 
 // Five prompts to avoid Redis cache 
 const prompts = [

@@ -12,6 +12,31 @@ spec:
       labels:
         app: counselgpt-api
     spec:
+      nodeSelector:
+        cloud.google.com/gke-accelerator: "nvidia-l4"         # GPU TYPE
+        cloud.google.com/gke-accelerator-count: "1"           # GPU COUNT
+
+      containers:
+      - name: counselgpt-api
+        image: IMAGE_REPLACE_ME
+        resources:
+          requests:
+            nvidia.com/gpu: 1
+            cpu: "2"
+            memory: "8Gi"
+          limits:
+            nvidia.com/gpu: 1
+            cpu: "4"
+            memory: "16Gi"
+        env:
+        - name: MODEL_PATH
+          value: "/models/llama-2-7b-chat.Q4_K_M.gguf"
+        - name: REDIS_URL
+          value: "redis://counselgpt-redis:6379"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+
       initContainers:
       - name: download-model
         image: google/cloud-sdk:slim
@@ -19,50 +44,12 @@ spec:
         - sh
         - -c
         - |
-          if [ ! -f /models/llama-2-7b-chat.Q4_K_M.gguf ]; then
-            echo "Downloading model..."
-            gsutil cp gs://counselgpt-models/llama-2-7b-chat.Q4_K_M.gguf /models/
-            echo "Download complete"
-          else
-            echo "Model already exists, skipping download"
-          fi
-        resources:
-          requests:
-            ephemeral-storage: "5Gi"  # ADD THIS
-          limits:
-            ephemeral-storage: "6Gi"  # ADD THIS
+          gsutil cp gs://counselgpt-models/llama-2-7b-chat.Q4_K_M.gguf /models/
         volumeMounts:
         - name: model-storage
           mountPath: /models
-      
-      containers:
-      - name: counselgpt-api
-        image: IMAGE_REPLACE_ME
-        
-        resources:
-          requests:
-            cpu: "4"
-            memory: "8Gi"
-            ephemeral-storage: "5Gi"  # ADD THIS
-          limits:
-            cpu: "8"
-            memory: "16Gi"
-            ephemeral-storage: "6Gi"  # ADD THIS
-        
-        ports:
-        - containerPort: 8000
-        
-        env:
-        - name: MODEL_PATH
-          value: "/models/llama-2-7b-chat.Q4_K_M.gguf"
-        - name: REDIS_URL
-          value: "redis://counselgpt-redis:6379"
-        
-        volumeMounts:
-        - name: model-storage
-          mountPath: /models
-      
+
       volumes:
       - name: model-storage
         emptyDir:
-          sizeLimit: 10Gi
+          sizeLimit: 20Gi
