@@ -2,7 +2,7 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _IMAGE_PATH: "us-west2-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi"
+  _IMAGE_PATH: "us-central1-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi"
 
 steps:
   # 1. Build Docker image
@@ -23,7 +23,7 @@ steps:
         '${_IMAGE_PATH}:${SHORT_SHA}'
       ]
 
-  # 3. Set Kube credentials
+  # 3. Set Kube credentials (UPDATED REGION)
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
       [
@@ -32,7 +32,7 @@ steps:
         'get-credentials',
         'counselgpt-cluster',
         '--region',
-        'us-west2'
+        'us-central1'
       ]
 
   # 4. Apply manifests with image override
