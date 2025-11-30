@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://136.117.84.232:8000/infer";
+// const API_URL = import.meta.env.VITE_API_URL || "http://136.117.84.232:8000/infer";
+const API_URL = "http://136.117.84.232:8000/infer";
 
 function App() {
   const [messages, setMessages] = useState([]);
