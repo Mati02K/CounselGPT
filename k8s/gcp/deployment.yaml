@@ -13,7 +13,7 @@ spec:
         app: counselgpt-api
     spec:
       nodeSelector:
-        cloud.google.com/gke-accelerator: "nvidia-l4"         # GPU TYPE
+        cloud.google.com/gke-accelerator: "nvidia-tesla-t4"         # GPU TYPE
         cloud.google.com/gke-accelerator-count: "1"           # GPU COUNT
 
       containers:
