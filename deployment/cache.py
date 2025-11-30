@@ -9,6 +9,11 @@ logger = logging.getLogger(__name__)
 
 class ResponseCache:
     def __init__(self, redis_url: str = "redis://localhost:6379"):
+        """Initalize Redis Cache
+
+        Args:
+            redis_url (_type_, optional): Redis URL. Defaults to "redis://localhost:6379".
+        """
         try:
             self.redis_client = redis.from_url(redis_url, decode_responses=True)
             self.redis_client.ping()
@@ -18,12 +23,28 @@ class ResponseCache:
             self.redis_client = None
     
     def _generate_key(self, prompt: str, max_tokens: int) -> str:
-        """Generate cache key from prompt + params"""
+        """Generate cache key from prompt + params
+
+        Args:
+            prompt (str): Prompt from the user
+            max_tokens (int): Max tokens allowed
+
+        Returns:
+            str: Hashed Key for Redis
+        """
         content = f"{prompt}:{max_tokens}"
         return f"llama:cache:{hashlib.sha256(content.encode()).hexdigest()}" # I am creating a cache key using hash
     
     def get(self, prompt: str, max_tokens: int) -> Optional[str]:
-        """Get cached response"""
+        """Get stored cache
+
+        Args:
+            prompt (str): Prompt from the user
+            max_tokens (int): Max tokens
+
+        Returns:
+            str | None: returns the stored value if key is found else returns None
+        """
         if not self.redis_client:
             return None
         
@@ -40,8 +61,15 @@ class ResponseCache:
             logger.error(f"Cache get error: {e}")
             return None
     
-    def set(self, prompt: str, max_tokens: int, response: str, ttl: int = 3600):
-        """Cache response with TTL (default 1 hour)"""
+    def set(self, prompt: str, max_tokens: int, response: str, ttl: int = 1800):
+        """Cache response with TTL (default 30 mins)
+
+        Args:
+            prompt (str): Prompt from the user
+            max_tokens (int): Max tokens
+            response (str): Response from the model
+            ttl (int, optional): Time to Live (30 mins). Defaults to 1800.
+        """
         if not self.redis_client:
             return
         
@@ -53,7 +81,14 @@ class ResponseCache:
             logger.error(f"Cache set error: {e}")
     
     def clear(self, pattern: str = "llama:cache:*"):
-        """Clear all cached responses"""
+        """Clear all cached responses"
+
+        Args:
+            pattern (_type_, optional): Basic hash key. Defaults to "llama:cache:*".
+
+        Returns:
+            int: returns 0 by default
+        """
         if not self.redis_client:
             return 0
         

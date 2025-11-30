@@ -6,7 +6,7 @@ export const options = {
   duration: '10m',  
 };
 
-const API_URL = "https://counselgpt-mathesh.nrp-nautilus.io/infer";
+const API_URL = __ENV.API_URL;
 
 // Five prompts to avoid Redis cache 
 const prompts = [

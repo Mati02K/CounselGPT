@@ -5,7 +5,6 @@ import os
 import time
 from modelclass import CounselGPTModel
 from cache import ResponseCache
-
 from metrics import (
     INFERENCE_TIME,
     TOKENS_GENERATED,
@@ -33,6 +32,7 @@ model = CounselGPTModel(
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 cache = ResponseCache(redis_url=redis_url)
 
+
 class InferRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=4096)
     max_tokens: int = Field(200, ge=1, le=2048)
@@ -44,16 +44,33 @@ class InferResponse(BaseModel):
     response_length: int
     cached: bool = False
 
+
 @app.get("/health")
 def health_check():
+    """Gets health of the API and model status"""
     return {
         "status": "healthy",
         "model_loaded": model is not None,
         "cache_stats": cache.stats()
     }
 
+
 @app.post("/infer", response_model=InferResponse)
 def infer_text(req: InferRequest):
+    """
+    Calls CounselGPTAPI for inference and returns output with metrics
+
+    Request:
+        - prompt (str): The user input text.
+        - max_tokens (int): Number of tokens to generate.
+        - use_cache (bool): Whether to return a cached result if present.
+
+    Response:
+        - response (str) The response from the model.
+        - prompt_length (int): Length of the prompt.
+        - response_length (int): Response Length.
+        - cached (bool): If caching was used or not?
+    """
     try:
         logger.info(f"Received inference request (prompt_len={len(req.prompt)}, max_tokens={req.max_tokens}, use_cache={req.use_cache})")
         

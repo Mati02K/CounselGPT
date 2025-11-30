@@ -11,6 +11,15 @@ class CounselGPTModel:
     _inference_lock = threading.Lock()  # Lock for inference
 
     def __new__(cls, model_path: str, n_gpu_layers: int = 35):
+        """Create a new Instance of the CounselGPTModel
+
+        Args:
+            model_path (str): Place where model resides
+            n_gpu_layers (int, optional): No of GPU Layers to use (GPU Acceleration). Defaults to 35.
+
+        Returns:
+            _type_: Instance of the model which would be a singleton.
+        """
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -19,6 +28,12 @@ class CounselGPTModel:
         return cls._instance
 
     def _initialize(self, model_path, n_gpu_layers):
+        """Actual Initilization of the model
+
+        Args:
+            model_path (_type_): Place where model resides
+            n_gpu_layers (_type_): No of GPU Layers to use (GPU Acceleration). Defaults to 35.
+        """
         try:
             logger.info(f"Loading LLaMA model from {model_path}...")
             self.model = Llama(
@@ -30,9 +45,23 @@ class CounselGPTModel:
             logger.info("LLaMA model loaded successfully!")
         except Exception as e:
             logger.error(f"Failed to load model: {str(e)}")
-            raise
+            raise FileNotFoundError("Model Not found")
 
     def infer(self, prompt: str, max_tokens: int = 300) -> str:
+        """Inference of the CounselGPT Model
+
+        Args:
+            prompt (str): User Prompt
+            max_tokens (int, optional): Max Token needed. Defaults to 300.
+
+        Raises:
+            ValueError: If prompt is empty
+            ValueError: If tokens is over 2048.
+            RuntimeError: Any run time error during model inference
+
+        Returns:
+            str: Output for the user's prompt
+        """
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
         
