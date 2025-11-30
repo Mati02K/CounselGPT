@@ -8,10 +8,16 @@
 * **redis-service.yaml** – Internal ClusterIP for Redis.
 * **hpa.yaml / ingress.yaml** – Optional autoscaling + ingress.
 
-## Connect kubectl (1 line)
+## Connect kubectl and to our cluster
 
 ```bash
-gcloud container clusters get-credentials counselgpt-cluster --zone us-west1-a
+#login first
+gcloud auth login 
+
+#then do the rest
+gcloud config set project counselgpt-cse239
+gcloud container clusters get-credentials counselgpt-cluster --region us-west1
+kubectl get pods
 ```
 
 ## Apply in Correct Order (5 lines)

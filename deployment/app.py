@@ -12,11 +12,21 @@ from metrics import (
     CACHE_MISSES,
     add_metrics_middleware
 )
+from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="CounselGPT API", version="1.0")
+
+# fix for frontend issue
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],     
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Attach Prometheus metrics
 add_metrics_middleware(app)
