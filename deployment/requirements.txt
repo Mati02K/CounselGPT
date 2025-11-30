@@ -3,4 +3,6 @@ gunicorn
 uvicorn[standard]
 pydantic
 llama-cpp-python[cuda]
-redis   
+redis
+prometheus-client
+prometheus-fastapi-instrumentator

@@ -15,7 +15,7 @@ steps:
         'deployment'
       ]
 
-  # 2. Push image
+  # 2. Push to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
@@ -23,7 +23,7 @@ steps:
         '${_IMAGE_PATH}:${SHORT_SHA}'
       ]
 
-  # 3. Set Kube credentials (UPDATED REGION)
+  # 3. Set kube credentials
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
       [
@@ -31,18 +31,19 @@ steps:
         'clusters',
         'get-credentials',
         'counselgpt-cluster',
-        '--region',
-        'us-central1'
+        '--zone',
+        'us-west1-a'
       ]
 
-  # 4. Apply manifests with image override
+  # 4. Replace placeholder + apply manifests
   - name: "gcr.io/cloud-builders/kubectl"
     entrypoint: bash
     args:
       - "-c"
       - |
-        kubectl set image deployment/counselgpt-api counselgpt-api=${_IMAGE_PATH}:${SHORT_SHA} --record
+        sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:${SHORT_SHA}|g" k8s/gcp/deployment.yaml
         kubectl apply -f k8s/gcp/
+        kubectl rollout status deployment/counselgpt-api
 
 images:
   - '${_IMAGE_PATH}:${SHORT_SHA}'

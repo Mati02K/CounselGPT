@@ -1,0 +1,177 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "GPU Utilization (%)",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "DCGM_FI_DEV_GPU_UTIL"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "decimals": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "SM Utilization (%)",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_SM_UTIL" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "decimals": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "TensorCore Utilization (%)",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_TENSOR_UTIL" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "decimals": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "VRAM Used vs Total (MiB)",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "DCGM_FI_DEV_FB_USED / 1024 / 1024",
+          "legendFormat": "used (gpu={{gpu}})"
+        },
+        {
+          "refId": "B",
+          "expr": "DCGM_FI_DEV_FB_TOTAL / 1024 / 1024",
+          "legendFormat": "total (gpu={{gpu}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "MiB", "decimals": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "VRAM Usage (%)",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(DCGM_FI_DEV_FB_USED / DCGM_FI_DEV_FB_TOTAL) * 100",
+          "legendFormat": "gpu={{gpu}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "decimals": 1 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "GPU Power Usage (Watts)",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_POWER_USAGE" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "watt", "decimals": 1 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "GPU Temperature (°C)",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 18 },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_GPU_TEMP" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "celsius", "decimals": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Memory Copy Utilization (%)",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 18 },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_MEM_COPY_UTIL" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "decimals": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "PCIe RX / TX (bytes/sec)",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(DCGM_FI_DEV_PCIE_RX_BYTES[5m])",
+          "legendFormat": "RX (gpu={{gpu}})"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(DCGM_FI_DEV_PCIE_TX_BYTES[5m])",
+          "legendFormat": "TX (gpu={{gpu}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "Bps", "decimals": 1 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "GPU Clocks (SM / Mem MHz)",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "DCGM_FI_DEV_CLOCK_SM",
+          "legendFormat": "SM (gpu={{gpu}})"
+        },
+        {
+          "refId": "B",
+          "expr": "DCGM_FI_DEV_CLOCK_MEM",
+          "legendFormat": "Mem (gpu={{gpu}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "MHz", "decimals": 0 },
+        "overrides": []
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "light",
+  "tags": ["gpu", "nvidia"],
+  "title": "GPU Performance Dashboard (Fixed, Multi-GPU)",
+  "version": 1
+}

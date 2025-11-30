@@ -2,37 +2,56 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: counselgpt-api
+  labels:
+    app: counselgpt-api
+
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: counselgpt-api
+
   template:
     metadata:
       labels:
         app: counselgpt-api
+
     spec:
+      # Run ONLY on GPU nodes
       nodeSelector:
-        cloud.google.com/gke-accelerator: "nvidia-tesla-t4"         # GPU TYPE
-        cloud.google.com/gke-accelerator-count: "1"           # GPU COUNT
+        accelerator: nvidia-l4
+
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
 
       containers:
       - name: counselgpt-api
-        image: IMAGE_REPLACE_ME
+        image: REPLACE_IMAGE          # <--- Cloud Build overrides this automatically
+        imagePullPolicy: IfNotPresent
+
         resources:
-          requests:
-            nvidia.com/gpu: 1
-            cpu: "2"
-            memory: "8Gi"
           limits:
-            nvidia.com/gpu: 1
             cpu: "4"
-            memory: "16Gi"
+            memory: "8Gi"
+            ephemeral-storage: "10Gi"
+            nvidia.com/gpu: 1        # GPU allocation
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+            ephemeral-storage: "10Gi"
+
+        ports:
+        - name: http
+          containerPort: 8000
+
         env:
         - name: MODEL_PATH
           value: "/models/llama-2-7b-chat.Q4_K_M.gguf"
         - name: REDIS_URL
           value: "redis://counselgpt-redis:6379"
+
         volumeMounts:
         - name: model-storage
           mountPath: /models
@@ -44,12 +63,5 @@ spec:
         - sh
         - -c
         - |
-          gsutil cp gs://counselgpt-models/llama-2-7b-chat.Q4_K_M.gguf /models/
-        volumeMounts:
-        - name: model-storage
-          mountPath: /models
-
-      volumes:
-      - name: model-storage
-        emptyDir:
-          sizeLimit: 20Gi
+          echo "Downloading model..."
+          gsutil cp gs://counselgpt-models/l

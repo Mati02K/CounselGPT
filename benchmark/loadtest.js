@@ -9,15 +9,24 @@ export const options = {
 };
 
 // const API_URL = "https://counselgpt-mathesh.nrp-nautilus.io/infer";
-const API_URL = "http://34.36.112.38:80/infer";
+// const API_URL = "http://localhost:8000/infer";
+const API_URL = "http://136.117.84.232:8000/infer";
 
 // Five prompts to avoid Redis cache 
+// const prompts = [
+//   "Explain fraud in simple terms.",
+//   "What is vessel in Law?.",
+//   "I am a immigrant what are the rules I should know before travelling outside US?",
+//   "What are the things I need to verify in my legal agreement.",
+//   "Give a short overview of taffic laws in Nashville."
+// ];
+
 const prompts = [
-  "Explain fraud in simple terms.",
-  "What is vessel in Law?.",
-  "I am a immigrant what are the rules I should know before travelling outside US?",
-  "What are the things I need to verify in my legal agreement.",
-  "Give a short overview of taffic laws in Nashville."
+  "1. Explain fraud in simple terms?",
+  "2. What is vessel in Law?",
+  "3. I am a immigrant what are the rules I should know before travelling outside US, do you know",
+  "5. What are the things I need to verify in my legal agreement?",
+  "4. Give a short overview of taffic laws in Nashville!"
 ];
 
 export default function () {

@@ -21,7 +21,7 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app.py modelclass.py cache.py ./
+COPY prometheus.yml metrics.py app.py modelclass.py cache.py ./
 
 # Model directory will be mounted at runtime
 VOLUME ["/models"]

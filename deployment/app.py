@@ -2,14 +2,25 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import logging
 import os
-
+import time
 from modelclass import CounselGPTModel
 from cache import ResponseCache
+
+from metrics import (
+    INFERENCE_TIME,
+    TOKENS_GENERATED,
+    CACHE_HITS,
+    CACHE_MISSES,
+    add_metrics_middleware
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="CounselGPT API", version="1.0")
+
+# Attach Prometheus metrics
+add_metrics_middleware(app)
 
 # Initialize model
 logger.info("Initializing CounselGPT model...")
@@ -50,16 +61,25 @@ def infer_text(req: InferRequest):
         if req.use_cache:
             cached_response = cache.get(req.prompt, req.max_tokens)
             if cached_response:
+                CACHE_HITS.inc()
                 return InferResponse(
                     response=cached_response,
                     prompt_length=len(req.prompt),
                     response_length=len(cached_response),
                     cached=True
                 )
+            else:
+                CACHE_HITS.inc()
         
         # Cache miss or disabled - run inference
+        # Measure inference duration
+        start = time.time()
         result = model.infer(req.prompt, req.max_tokens)
+        INFERENCE_TIME.observe(time.time() - start)
         
+        # Count tokens
+        TOKENS_GENERATED.inc(len(result.split()))
+
         # Cache the result (if cache enabled)
         if req.use_cache:
             cache.set(req.prompt, req.max_tokens, result, ttl=3600)
