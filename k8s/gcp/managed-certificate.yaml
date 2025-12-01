@@ -1,0 +1,8 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: counselgpt-ssl-cert
+spec:
+  domains:
+    - 136.110.236.198.nip.io
+

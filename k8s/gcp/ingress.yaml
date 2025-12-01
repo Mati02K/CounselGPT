@@ -4,9 +4,13 @@ metadata:
   name: counselgpt-ingress
   annotations:
     kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "counselgpt-ip"
+    networking.gke.io/managed-certificates: "counselgpt-ssl-cert"
+    kubernetes.io/ingress.allow-http: "true"
 spec:
   rules:
-  - http:
+  - host: 136.110.236.198.nip.io 
+    http:
       paths:
       - path: /
         pathType: Prefix

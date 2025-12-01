@@ -1,6 +1,9 @@
 name: Deploy Frontend to GitHub Pages
 
 on:
+  push:
+    branches:
+      - main
   release:
     types: [published]
 
@@ -11,6 +14,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: github-pages
 
     steps:
       - name: Checkout repo
@@ -27,6 +31,10 @@ jobs:
 
       - name: Build project
         working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_MODELS: '[{"id":"qwen2.5-7b-legal","name":"Qwen2.5-7B Legal (LoRA)"},{"id":"qwen2.5-7b-base","name":"Qwen2.5-7B Base"}]'
+          VITE_DEFAULT_MODEL: qwen2.5-7b-legal
         run: npm run build
 
       - name: Upload artifact
