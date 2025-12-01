@@ -10,7 +10,7 @@ export const options = {
 
 // const API_URL = "https://counselgpt-mathesh.nrp-nautilus.io/infer";
 // const API_URL = "http://localhost:8000/infer";
-// const API_URL = "http://136.117.84.232:8000/infer";
+// const API_URL = "https://136.110.236.198.nip.io/infer";
 const API_URL = __ENV.API_URL;
 
 

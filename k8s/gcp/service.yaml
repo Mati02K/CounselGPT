@@ -9,7 +9,7 @@ metadata:
     prometheus.io/port: "8000"
     prometheus.io/path: "/metrics"
 spec:
-  type: LoadBalancer          # <---- Load Balancer
+  type: NodePort            
   selector:
     app: counselgpt-api
   ports:
