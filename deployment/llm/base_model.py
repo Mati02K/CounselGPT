@@ -85,7 +85,7 @@ class BaseLlamaModel:
                     top_p=0.9,  # Nucleus sampling
                     top_k=40,  # Top-K sampling
                     repeat_penalty=1.1,  # Reduce repetition
-                    stop=["User:", "\n\n\n"],  # Stop sequences
+                    stop=["<|im_end|>", "<|im_start|>", "User:", "\n\n\n"],  # Qwen chat template stop tokens
                     echo=False,  # Don't echo prompt
                 )
                 text = res["choices"][0]["text"].strip()
