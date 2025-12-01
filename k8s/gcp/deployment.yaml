@@ -26,42 +26,91 @@ spec:
         operator: "Exists"
         effect: "NoSchedule"
 
+      # -----------------------------
+      # InitContainer = Download models from GCS
+      # -----------------------------
+      initContainers:
+      - name: download-models
+        image: google/cloud-sdk:slim
+        command:
+        - sh
+        - -c
+        - |
+          echo "[INIT] Creating model directories..."
+          mkdir -p /models/llama
+          mkdir -p /models/qwen
+
+          echo "[INIT] Downloading LLaMA..."
+          gsutil cp gs://counselgpt-models/llama-2-7b-chat.Q4_K_M.gguf /models/llama/
+
+          echo "[INIT] Downloading Qwen Base..."
+          gsutil cp gs://counselgpt-models/Qwen2.5-7B-Instruct-Q8_0.gguf /models/qwen/
+
+          echo "[INIT] Downloading Qwen LoRA Adapter..."
+          gsutil cp gs://counselgpt-models/legal_lora_adapter_only_25k.gguf /models/qwen/
+
+          echo "[INIT] All model files downloaded."
+
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+
+      # -----------------------------
+      # Main Inference Container
+      # -----------------------------
       containers:
       - name: counselgpt-api
-        image: REPLACE_IMAGE          # <--- Cloud Build overrides this automatically
+        image: REPLACE_IMAGE
         imagePullPolicy: IfNotPresent
 
         resources:
           limits:
             cpu: "4"
             memory: "8Gi"
-            ephemeral-storage: "10Gi"
-            nvidia.com/gpu: "1"        # GPU allocation
+            ephemeral-storage: "30Gi"   # GGUF models are large
+            nvidia.com/gpu: "1"
           requests:
             cpu: "2"
             memory: "4Gi"
-            ephemeral-storage: "10Gi"
+            ephemeral-storage: "20Gi"
+
+        env:
+        # Qwen Model Paths (LoRA always ON)
+        - name: QWEN_MODEL_PATH
+          value: "/models/qwen/Qwen2.5-7B-Instruct-Q8_0.gguf"
+
+        - name: QWEN_LORA_PATH
+          value: "/models/qwen/legal_lora_adapter_only_25k.gguf"
+
+        - name: QWEN_GPU_LAYERS
+          value: "999"
+
+        # LLaMA Model Path
+        - name: LLAMA_MODEL_PATH
+          value: "/models/llama/llama-2-7b-chat.Q4_K_M.gguf"
+
+        - name: LLAMA_GPU_LAYERS
+          value: "35"
+
+        # CPU inference fallback
+        - name: LLM_N_THREADS
+          value: "8"
+
+        # Redis
+        - name: REDIS_URL
+          value: "redis://counselgpt-redis:6379"
 
         ports:
         - name: http
           containerPort: 8000
 
-        env:
-        - name: MODEL_PATH
-          value: "/models/llama-2-7b-chat.Q4_K_M.gguf"
-        - name: REDIS_URL
-          value: "redis://counselgpt-redis:6379"
-
         volumeMounts:
         - name: model-storage
           mountPath: /models
 
-      initContainers:
-      - name: download-model
-        image: google/cloud-sdk:slim
-        command:
-        - sh
-        - -c
-        - |
-          echo "Downloading model..."
-          gsutil cp gs://counselgpt-models/l
+      # -----------------------------
+      # Volumes
+      # -----------------------------
+      volumes:
+      - name: model-storage
+        emptyDir: {}

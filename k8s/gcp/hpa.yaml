@@ -11,7 +11,7 @@ spec:
     name: counselgpt-api
 
   minReplicas: 1
-  maxReplicas: 5
+  maxReplicas: 1 # TODO :- need atleast 3, I cant get a way around quotos now, but if it works it would be great
 
   metrics:
   - type: Resource

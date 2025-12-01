@@ -23,7 +23,7 @@ spec:
 
       containers:
       - name: counselgpt-api
-        image: mathesh0208/counselgptapi:v7
+        image: mathesh0208/counselgptapi:v9
         ports:
         - containerPort: 8000
 
@@ -32,11 +32,11 @@ spec:
           limits:
             cpu: "2"
             memory: "8Gi"
-            nvidia.com/gpu: 1          # <-- THIS ENSURES AT LEAST 1 GPU
+            nvidia.com/gpu: "1"          # <-- THIS ENSURES AT LEAST 1 GPU
           requests:
             cpu: "1"
             memory: "4Gi"
-            nvidia.com/gpu: 1          # <-- GPU REQUIRED TO SCHEDULE
+            nvidia.com/gpu: "1"          # <-- GPU REQUIRED TO SCHEDULE
 
         env:
         - name: MODEL_PATH

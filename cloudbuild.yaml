@@ -43,6 +43,9 @@ steps:
       - |
         sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:${SHORT_SHA}|g" k8s/gcp/deployment.yaml
         kubectl apply -f k8s/gcp/
+        # FORCE RESTART EVERY DEPLOY
+        kubectl rollout restart deployment/counselgpt-api
+        # Wait for rollout to complete
         kubectl rollout status deployment/counselgpt-api
 
 images:

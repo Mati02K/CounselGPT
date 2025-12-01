@@ -1,0 +1,78 @@
+import logging
+import threading
+from typing import List, Optional
+
+from llama_cpp import Llama
+
+logger = logging.getLogger(__name__)
+
+
+class BaseLlamaModel:
+    """
+    Thin wrapper around llama_cpp.Llama with:
+      - common init params
+      - basic validation
+      - single-inference lock
+    """
+
+    def __init__(
+        self,
+        name: str,
+        model_path: str,
+        n_ctx: int = 2048,
+        n_gpu_layers: int = 0,
+        n_threads: Optional[int] = None,
+        lora_paths: Optional[List[str]] = None,
+        lora_scaling: Optional[List[float]] = None,
+        use_mmap: bool = True,
+    ):
+        self.name = name
+        self.model_path = model_path
+        self.n_ctx = n_ctx
+        self.n_gpu_layers = n_gpu_layers
+        self.n_threads = n_threads
+        self.lora_paths = lora_paths
+        self.lora_scaling = lora_scaling
+        self.use_mmap = use_mmap
+
+        self._inference_lock = threading.Lock()
+
+        logger.info(
+            f"[{self.name}] Loading model from {self.model_path} "
+            f"(ctx={self.n_ctx}, gpu_layers={self.n_gpu_layers}, "
+            f"threads={self.n_threads}, lora={self.lora_paths})"
+        )
+
+        try:
+            self.model = Llama(
+                model_path=self.model_path,
+                n_ctx=self.n_ctx,
+                n_gpu_layers=self.n_gpu_layers,
+                n_threads=self.n_threads,
+                use_mmap=self.use_mmap,
+                lora_paths=self.lora_paths,
+                lora_scaling=self.lora_scaling,
+                verbose=False,
+            )
+            logger.info(f"[{self.name}] Model loaded successfully")
+        except Exception as e:
+            logger.error(f"[{self.name}] Failed to load model: {e}")
+            raise
+
+    def infer(self, prompt: str, max_tokens: int = 300) -> str:
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+
+        if max_tokens < 1 or max_tokens > 2048:
+            raise ValueError("max_tokens must be between 1 and 2048")
+
+        with self._inference_lock:
+            try:
+                logger.info(f"[{self.name}] Generating response (max_tokens={max_tokens})")
+                res = self.model(prompt, max_tokens=max_tokens)
+                text = res["choices"][0]["text"].strip()
+                logger.info(f"[{self.name}] Generated {len(text)} chars")
+                return text
+            except Exception as e:
+                logger.error(f"[{self.name}] Inference failed: {e}")
+                raise RuntimeError(f"Model inference failed: {e}")
