@@ -23,11 +23,12 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install llama-cpp-python with CUDA support (must be built from source)
-ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=all"
+# L4 GPU = compute capability 8.9
+ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=89"
 ENV FORCE_CMAKE=1
 
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir --upgrade --force-reinstall llama-cpp-python --no-cache-dir && \
+    pip install --no-cache-dir --upgrade --force-reinstall llama-cpp-python && \
     pip install --no-cache-dir -r requirements.txt
 
 # --------------------------------------
