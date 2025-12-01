@@ -26,10 +26,14 @@ class QwenModel(BaseLlamaModel):
             "QWEN_LORA_PATH", "/models/qwen/legal_lora_adapter_only_25k.gguf"
         )
 
-        ctx = n_ctx or int(os.getenv("QWEN_N_CTX", "4096"))
-        threads = n_threads or int(os.getenv("LLM_N_THREADS", "8"))
+        # Optimized for L4 GPU - reduce context for faster inference
+        ctx = n_ctx or int(os.getenv("QWEN_N_CTX", "2048"))
+        
+        # L4 has 24 cores, use all for CPU parts
+        threads = n_threads or int(os.getenv("LLM_N_THREADS", "24"))
 
         if gpu:
+            # Load all layers to GPU for maximum speed
             gpu_layers = n_gpu_layers or int(os.getenv("QWEN_GPU_LAYERS", "999"))
         else:
             gpu_layers = 0

@@ -25,6 +25,8 @@ class BaseLlamaModel:
         lora_paths: Optional[List[str]] = None,
         lora_scaling: Optional[List[float]] = None,
         use_mmap: bool = True,
+        n_batch: int = 512,  # Batch size for prompt processing
+        use_mlock: bool = False,  # Don't lock memory (let OS manage)
     ):
         self.name = name
         self.model_path = model_path
@@ -34,6 +36,8 @@ class BaseLlamaModel:
         self.lora_paths = lora_paths
         self.lora_scaling = lora_scaling
         self.use_mmap = use_mmap
+        self.n_batch = n_batch
+        self.use_mlock = use_mlock
 
         self._inference_lock = threading.Lock()
 
@@ -49,10 +53,15 @@ class BaseLlamaModel:
                 n_ctx=self.n_ctx,
                 n_gpu_layers=self.n_gpu_layers,
                 n_threads=self.n_threads,
+                n_batch=self.n_batch,
                 use_mmap=self.use_mmap,
+                use_mlock=self.use_mlock,
                 lora_paths=self.lora_paths,
                 lora_scaling=self.lora_scaling,
                 verbose=False,
+                # L4 GPU optimizations
+                rope_freq_base=0.0,  # Auto-detect
+                rope_freq_scale=0.0,  # Auto-detect
             )
             logger.info(f"[{self.name}] Model loaded successfully")
         except Exception as e:
@@ -69,7 +78,16 @@ class BaseLlamaModel:
         with self._inference_lock:
             try:
                 logger.info(f"[{self.name}] Generating response (max_tokens={max_tokens})")
-                res = self.model(prompt, max_tokens=max_tokens)
+                res = self.model(
+                    prompt,
+                    max_tokens=max_tokens,
+                    temperature=0.7,  # Balanced creativity
+                    top_p=0.9,  # Nucleus sampling
+                    top_k=40,  # Top-K sampling
+                    repeat_penalty=1.1,  # Reduce repetition
+                    stop=["User:", "\n\n\n"],  # Stop sequences
+                    echo=False,  # Don't echo prompt
+                )
                 text = res["choices"][0]["text"].strip()
                 logger.info(f"[{self.name}] Generated {len(text)} chars")
                 return text

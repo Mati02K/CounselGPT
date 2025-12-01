@@ -29,7 +29,7 @@ spec:
         effect: "NoSchedule"
 
       # -----------------------------
-      # InitContainer = Download models from GCS
+      # InitContainer = Download models from GCS (only if missing)
       # -----------------------------
       initContainers:
       - name: download-models
@@ -38,20 +38,40 @@ spec:
         - sh
         - -c
         - |
-          echo "[INIT] Creating model directories..."
+          echo "[INIT] Checking for existing models..."
           mkdir -p /models/llama
           mkdir -p /models/qwen
 
-          echo "[INIT] Downloading LLaMA..."
-          gsutil cp gs://counselgpt-models/llama-2-7b-chat.Q4_K_M.gguf /models/llama/
+          # Check and download LLaMA model
+          if [ ! -f /models/llama/llama-2-7b-chat.Q4_K_M.gguf ]; then
+            echo "[INIT] Downloading LLaMA model..."
+            gsutil cp gs://counselgpt-models/llama-2-7b-chat.Q4_K_M.gguf /models/llama/
+            echo "[INIT] LLaMA model downloaded."
+          else
+            echo "[INIT] LLaMA model already exists, skipping download."
+          fi
 
-          echo "[INIT] Downloading Qwen Base..."
-          gsutil cp gs://counselgpt-models/Qwen2.5-7B-Instruct-Q8_0.gguf /models/qwen/
+          # Check and download Qwen base model
+          if [ ! -f /models/qwen/Qwen2.5-7B-Instruct-Q8_0.gguf ]; then
+            echo "[INIT] Downloading Qwen base model..."
+            gsutil cp gs://counselgpt-models/Qwen2.5-7B-Instruct-Q8_0.gguf /models/qwen/
+            echo "[INIT] Qwen base model downloaded."
+          else
+            echo "[INIT] Qwen base model already exists, skipping download."
+          fi
 
-          echo "[INIT] Downloading Qwen LoRA Adapter..."
-          gsutil cp gs://counselgpt-models/legal_lora_adapter_only_25k.gguf /models/qwen/
+          # Check and download Qwen LoRA adapter
+          if [ ! -f /models/qwen/legal_lora_adapter_only_25k.gguf ]; then
+            echo "[INIT] Downloading Qwen LoRA adapter..."
+            gsutil cp gs://counselgpt-models/legal_lora_adapter_only_25k.gguf /models/qwen/
+            echo "[INIT] Qwen LoRA adapter downloaded."
+          else
+            echo "[INIT] Qwen LoRA adapter already exists, skipping download."
+          fi
 
-          echo "[INIT] All model files downloaded."
+          echo "[INIT] All models ready!"
+          ls -lh /models/qwen/
+          ls -lh /models/llama/
 
         volumeMounts:
         - name: model-storage
@@ -111,8 +131,9 @@ spec:
           mountPath: /models
 
       # -----------------------------
-      # Volumes
+      # Volumes - Persistent storage for models
       # -----------------------------
       volumes:
       - name: model-storage
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: counselgpt-models
