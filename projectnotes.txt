@@ -58,3 +58,13 @@ gcloud container clusters resize counselgpt-cluster \
   --node-pool=gpu-pool \
   --num-nodes=1 \
   --zone=us-west1-a
+
+
+
+
+GPU's we have at Nautilus :-
+ChatGPT said:
+
+L40 (48 GB, Ada Lovelace): Modern datacenter-class GPU with very strong tensor performance and large VRAM, excellent for high-throughput LLM inference.
+
+RTX 2080 Ti (11 GB, Turing): Older consumer GPU with limited VRAM and slower tensor cores, suitable for light inference but much weaker than L40.
