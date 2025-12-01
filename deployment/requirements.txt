@@ -2,7 +2,7 @@ fastapi
 gunicorn
 uvicorn[standard]
 pydantic
-llama-cpp-python[cuda]
+# llama-cpp-python installed separately in Dockerfile with CUDA support
 redis
 prometheus-client
 prometheus-fastapi-instrumentator
