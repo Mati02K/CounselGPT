@@ -46,13 +46,19 @@ VOLUME ["/models"]
 EXPOSE 8000
 
 # --------------------------------------
-# Start API
+# Start API with 2 workers for better GPU utilization
+# Each worker loads model independently (~10GB VRAM each)
+# L4 GPU has 24GB VRAM, so 2 workers fit comfortably
 # --------------------------------------
 CMD ["gunicorn", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
-     "--workers", "1", \
+     "--workers", "2", \
+     "--worker-connections", "10", \
+     "--max-requests", "1000", \
+     "--max-requests-jitter", "100", \
      "--bind", "0.0.0.0:8000", \
      "--timeout", "600", \
      "--access-logfile", "-", \
      "--error-logfile", "-", \
+     "--preload", \
      "app:app"]
