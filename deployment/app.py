@@ -47,18 +47,19 @@ cache = ResponseCache(redis_url=redis_url)
 # Request/Response Models
 # -----------------------------
 class InferRequest(BaseModel):
-    prompt: str = Field(..., min_length=1, max_length=4096)
-    max_tokens: int = Field(200, ge=1, le=2048)
-    model_name: str = Field("qwen", description="qwen or llama")
-    use_gpu: bool = Field(True, description="Use GPU accelerated model")
-    use_cache: bool = Field(True, description="Use cached response if available")
+    prompt: str = Field(..., min_length=1, max_length=4096, description="User prompt/question")
+    max_tokens: int = Field(400, ge=1, le=2048, description="Maximum tokens to generate (default: 400, ~300 words)")
+    model_name: str = Field("qwen", description="Model to use: 'qwen' (Qwen2.5-7B with LoRA) or 'llama' (Llama-2-7B)")
+    use_gpu: bool = Field(True, description="Use GPU acceleration (recommended)")
+    use_cache: bool = Field(True, description="Use Redis cache for faster repeated queries")
 
 
 class InferResponse(BaseModel):
-    response: str
-    prompt_length: int
-    response_length: int
-    cached: bool = False
+    response: str = Field(..., description="Generated text response")
+    prompt_length: int = Field(..., description="Length of input prompt in characters")
+    response_length: int = Field(..., description="Length of generated response in characters")
+    cached: bool = Field(default=False, description="Whether response was served from cache")
+    model_used: str = Field(default="qwen", description="Model that generated the response")
 
 
 # -----------------------------
@@ -96,26 +97,40 @@ def infer(req: InferRequest):
         cached_response = cache.get(req.prompt, req.max_tokens)
         if cached_response:
             CACHE_HITS.inc()
+            logger.info(f"Cache hit for prompt (length={len(req.prompt)})")
             return InferResponse(
                 response=cached_response,
                 prompt_length=len(req.prompt),
                 response_length=len(cached_response),
                 cached=True,
+                model_used=req.model_name,
             )
         else:
             CACHE_MISSES.inc()
 
     # -----------------------------
-    # 2️⃣ Run Inference Using ModelFactory
+    # 2️⃣ Validate Model Name
+    # -----------------------------
+    if req.model_name.lower() not in ["qwen", "llama"]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid model_name: {req.model_name}. Must be 'qwen' or 'llama'"
+        )
+
+    # -----------------------------
+    # 3️⃣ Run Inference Using ModelFactory
     # -----------------------------
     try:
         model = CounselGPTModel(model_name=req.model_name, use_gpu=req.use_gpu)
 
         start_time = time.time()
         result = model.infer(req.prompt, req.max_tokens)
-        INFERENCE_TIME.observe(time.time() - start_time)
-
+        inference_time = time.time() - start_time
+        
+        INFERENCE_TIME.observe(inference_time)
         TOKENS_GENERATED.inc(len(result.split()))
+        
+        logger.info(f"Inference completed in {inference_time:.2f}s, generated {len(result)} chars")
 
     except ValueError as e:
         logger.error(f"Validation Error: {e}")
@@ -130,7 +145,7 @@ def infer(req: InferRequest):
         raise HTTPException(status_code=500, detail="Internal server error")
 
     # -----------------------------
-    # 3️⃣ Cache Result
+    # 4️⃣ Cache Result
     # -----------------------------
     if req.use_cache:
         cache.set(req.prompt, req.max_tokens, result, ttl=3600)
@@ -140,6 +155,7 @@ def infer(req: InferRequest):
         prompt_length=len(req.prompt),
         response_length=len(result),
         cached=False,
+        model_used=req.model_name,
     )
 
 

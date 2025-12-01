@@ -1,0 +1,22 @@
+# Alternative: ReadWriteMany PVC using GCP Filestore
+# Use this if you need multiple pods on different nodes
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: counselgpt-models-rwx
+  labels:
+    app: counselgpt-api
+spec:
+  accessModes:
+    - ReadWriteMany  # Can be mounted by multiple nodes
+  resources:
+    requests:
+      storage: 100Gi  # Filestore minimum is 100GB (even if you only use 30GB)
+  storageClassName: enterprise-rwx  # GCP Filestore NFS
+
+---
+# Note: Filestore is more expensive!
+# Cost: 100GB × $0.20/GB/month = $20/month (vs $5/month for standard-rwo)
+# But it allows multiple pods on different nodes to share the models
+

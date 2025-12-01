@@ -122,12 +122,24 @@ function App() {
         throw new Error("API URL not configured. Please set VITE_API_URL in your .env file.");
       }
 
+      // Map frontend model IDs to backend model names
+      const modelMapping = {
+        "qwen2.5-7b-legal": "qwen",
+        "qwen2.5-7b-base": "qwen",
+        "qwen": "qwen",
+        "llama": "llama"
+      };
+      
+      const backendModelName = modelMapping[selectedModel] || "qwen";
+
       const res = await fetch(`${API_URL}/infer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           prompt: input, 
-          max_tokens: 500,
+          max_tokens: 400,  // Balanced: fast but detailed (300 words)
+          model_name: backendModelName,
+          use_gpu: true,
           use_cache: true
         }),
       });
@@ -140,7 +152,9 @@ function App() {
       const botMessage = {
         sender: "bot",
         text: data.response || "(No response)",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        cached: data.cached || false,
+        responseLength: data.response_length || 0
       };
 
       setConversations(prev => prev.map(conv => {

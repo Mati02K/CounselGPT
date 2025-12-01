@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: counselgpt-models
+  labels:
+    app: counselgpt-api
+spec:
+  accessModes:
+    - ReadWriteOnce  # One node at a time (cheaper). For multiple pods, see PERSISTENT-STORAGE-GUIDE.md
+    # For multi-pod: Change to ReadWriteMany + use Filestore (see alternatives below)
+  resources:
+    requests:
+      storage: 30Gi  # Enough for models + headroom
+  storageClassName: standard-rwo  # GCP standard persistent disk
+  # For ReadWriteMany: Use 'enterprise-rwx' or create Filestore-backed storage class
+
