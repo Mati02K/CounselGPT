@@ -1,0 +1,3 @@
+# Redirect API calls to backend (for Netlify/Vercel if needed)
+/api/*  http://136.117.84.232:8000/:splat  200
+
