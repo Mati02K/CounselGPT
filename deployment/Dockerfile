@@ -13,12 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     && rm -rf /var/lib/apt/lists/*
 
-# Set python3 as default python
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 WORKDIR /app
 
-# Copy and install Python dependencies first (better caching)
+# --------------------------------------
+# Install Python dependencies
+# --------------------------------------
 COPY requirements.txt .
 
 # Install llama-cpp-python with CUDA support (must be built from source)
@@ -29,16 +30,30 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir --upgrade --force-reinstall llama-cpp-python --no-cache-dir && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY prometheus.yml metrics.py app.py modelclass.py cache.py ./
+# --------------------------------------
+# Copy application source
+# --------------------------------------
+COPY app.py cache.py metrics.py modelclass.py prometheus.yml ./
 
-# Model directory will be mounted at runtime
+# Copy the llm module (your model loaders)
+COPY llm ./llm/
+
+# Copy your prompt file
+COPY prompt.py .
+
+# --------------------------------------
+# Model directory will be mounted externally
+# --------------------------------------
 VOLUME ["/models"]
 
-# Expose FastAPI port
+# --------------------------------------
+# Gunicorn API port
+# --------------------------------------
 EXPOSE 8000
 
-# Run with 1 worker (need to work on a better way for this)
+# --------------------------------------
+# Start API
+# --------------------------------------
 CMD ["gunicorn", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
      "--workers", "1", \
