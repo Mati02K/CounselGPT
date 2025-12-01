@@ -2,15 +2,10 @@ FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies including build tools for CUDA compilation
+# Install system dependencies (no build tools needed - using pre-built wheels!)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
-    python3-venv \
-    python3-dev \
-    git \
-    build-essential \
-    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
@@ -22,13 +17,11 @@ WORKDIR /app
 # --------------------------------------
 COPY requirements.txt .
 
-# Install llama-cpp-python with CUDA support (must be built from source)
-# L4 GPU = compute capability 8.9
-ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=89"
-ENV FORCE_CMAKE=1
-
+# Install llama-cpp-python from pre-built CUDA wheel (MUCH faster!)
+# Using CUDA 12.4 pre-built wheels from abetlen's repository
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir --upgrade --force-reinstall llama-cpp-python && \
+    pip install llama-cpp-python \
+        --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124 && \
     pip install --no-cache-dir -r requirements.txt
 
 # --------------------------------------
