@@ -147,72 +147,52 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "CPU Usage (%)",
+      "title": "CPU Usage by Pod",
       "gridPos": { "h": 6, "w": 6, "x": 12, "y": 12 },
       "targets": [
         {
           "refId": "A",
-          "expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100)"
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"default\",pod=~\"counselgpt.*\",container!=\"\"}[5m])) by (pod)",
+          "legendFormat": "{{pod}}"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "percent", "decimals": 1 },
+        "defaults": { "unit": "cores", "decimals": 2 },
         "overrides": []
       }
     },
     {
       "id": 9,
       "type": "timeseries",
-      "title": "Memory Usage (%)",
+      "title": "Memory Usage by Pod",
       "gridPos": { "h": 6, "w": 6, "x": 18, "y": 12 },
       "targets": [
         {
           "refId": "A",
-          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"default\",pod=~\"counselgpt.*\",container!=\"\"}) by (pod)",
+          "legendFormat": "{{pod}}"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "percent", "decimals": 1 },
+        "defaults": { "unit": "bytes", "decimals": 0 },
         "overrides": []
       }
     },
     {
       "id": 10,
       "type": "timeseries",
-      "title": "Disk Throughput (Read / Write)",
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 18 },
+      "title": "Network I/O by Pod (bytes/sec)",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 18 },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(node_disk_read_bytes_total[5m]))",
-          "legendFormat": "read"
+          "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"default\",pod=~\"counselgpt.*\"}[5m])) by (pod)",
+          "legendFormat": "RX - {{pod}}"
         },
         {
           "refId": "B",
-          "expr": "sum(rate(node_disk_written_bytes_total[5m]))",
-          "legendFormat": "write"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "Bps", "decimals": 1 },
-        "overrides": []
-      }
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Network In / Out (bytes/sec)",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 18 },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(node_network_receive_bytes_total[5m]))",
-          "legendFormat": "in"
-        },
-        {
-          "refId": "B",
-          "expr": "sum(rate(node_network_transmit_bytes_total[5m]))",
-          "legendFormat": "out"
+          "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"default\",pod=~\"counselgpt.*\"}[5m])) by (pod)",
+          "legendFormat": "TX - {{pod}}"
         }
       ],
       "fieldConfig": {
