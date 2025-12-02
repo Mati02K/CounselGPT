@@ -6,3 +6,6 @@ pydantic
 redis
 prometheus-client
 prometheus-fastapi-instrumentator
+# Semantic caching
+sentence-transformers
+numpy
