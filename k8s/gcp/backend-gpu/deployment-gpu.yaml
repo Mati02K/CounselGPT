@@ -1,22 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: counselgpt-api
+  name: counselgpt-api-gpu
   labels:
     app: counselgpt-api
+    tier: gpu
 
 spec:
-  replicas: 1
+  replicas: 1  # Single GPU pod (expensive)
   strategy:
-    type: Recreate  # Delete old pod before creating new one (good for single replica with GPU)
+    type: Recreate
   selector:
     matchLabels:
       app: counselgpt-api
+      tier: gpu
 
   template:
     metadata:
       labels:
         app: counselgpt-api
+        tier: gpu
 
     spec:
       # Run ONLY on GPU nodes
@@ -29,7 +32,7 @@ spec:
         effect: "NoSchedule"
 
       # -----------------------------
-      # InitContainer = Download models from GCS (only if missing)
+      # InitContainer = Download models from GCS
       # -----------------------------
       initContainers:
       - name: download-models
@@ -78,23 +81,24 @@ spec:
           mountPath: /models
 
       # -----------------------------
-      # Main Inference Container
+      # Main Inference Container (GPU)
       # -----------------------------
       containers:
       - name: counselgpt-api
-        image: REPLACE_IMAGE
+        image: us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/counselgptapi:e14e6be
         imagePullPolicy: IfNotPresent
 
         resources:
           limits:
             cpu: "4"
             memory: "8Gi"
-            ephemeral-storage: "30Gi"   # GGUF models are large
+            ephemeral-storage: "30Gi"
             nvidia.com/gpu: "1"
           requests:
             cpu: "2"
             memory: "4Gi"
             ephemeral-storage: "20Gi"
+            nvidia.com/gpu: "1"
 
         env:
         # Qwen Model Paths (LoRA always ON)
@@ -134,7 +138,7 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
-          failureThreshold: 30  # Allow up to 5 minutes for models to load (30 * 10s)
+          failureThreshold: 30  # Allow up to 5 minutes for models to load
           successThreshold: 1
 
         livenessProbe:
@@ -162,9 +166,10 @@ spec:
           mountPath: /models
 
       # -----------------------------
-      # Volumes - Persistent storage for models
+      # Volumes
       # -----------------------------
       volumes:
       - name: model-storage
         persistentVolumeClaim:
           claimName: counselgpt-models
+

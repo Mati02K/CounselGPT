@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: counselgpt-api-cpu
+  labels:
+    app: counselgpt-api
+    tier: cpu
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  selector:
+    app: counselgpt-api
+    tier: cpu  # Only routes to CPU pods
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+
