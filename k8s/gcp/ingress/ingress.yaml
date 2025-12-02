@@ -7,6 +7,8 @@ metadata:
     kubernetes.io/ingress.global-static-ip-name: "counselgpt-ip"
     networking.gke.io/managed-certificates: "counselgpt-ssl-cert"
     kubernetes.io/ingress.allow-http: "true"
+    # Increase backend timeout for slow CPU inference
+    cloud.google.com/backend-config: '{"default": "backend-timeout-config"}'
 spec:
   rules:
   - host: 34.111.194.27.nip.io 

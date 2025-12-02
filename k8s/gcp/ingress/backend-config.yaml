@@ -1,0 +1,10 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: backend-timeout-config
+  namespace: default
+spec:
+  timeoutSec: 180  # 3 minutes timeout for CPU inference (increased from default 30s)
+  connectionDraining:
+    drainingTimeoutSec: 60  # Allow 60s for existing connections to complete during updates
+

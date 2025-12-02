@@ -8,7 +8,7 @@ data:
   GPU_URL: "http://counselgpt-api-gpu:8000"
   CPU_URL: "http://counselgpt-api-cpu:8000"
   GPU_MAX_INFLIGHT: "4"
-  BACKEND_TIMEOUT: "60.0"
+  BACKEND_TIMEOUT: "180.0"  # Increased from 60s to 180s for CPU inference
   HEALTH_CHECK_INTERVAL: "10"
   CIRCUIT_BREAKER_THRESHOLD: "5"
   CIRCUIT_BREAKER_TIMEOUT: "30"
@@ -144,6 +144,8 @@ metadata:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8080"
     prometheus.io/path: "/metrics"
+    # Link to BackendConfig for increased timeout
+    cloud.google.com/backend-config: '{"default": "backend-timeout-config"}'
 spec:
   type: NodePort
   selector:

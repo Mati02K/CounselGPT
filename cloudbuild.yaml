@@ -144,7 +144,7 @@ steps:
   # 3. Set kube credentials
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'get-credentials'
-    waitFor: ['push-gpu', 'push-gpu-latest', 'push-cpu', 'push-cpu-latest', 'push-router', 'push-router-latest']
+    waitFor: ['push-gpu', 'push-gpu-latest', 'push-cpu', 'push-cpu-latest', 'push-router', 'push-router-latest', 'push-embeddings-latest', 'push-embeddings']
     args:
       - 'container'
       - 'clusters'

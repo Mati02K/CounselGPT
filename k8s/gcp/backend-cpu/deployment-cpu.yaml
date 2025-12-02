@@ -91,12 +91,12 @@ spec:
 
         resources:
           limits:
-            cpu: "4"
-            memory: "8Gi"
+            cpu: "8"      # Increased for faster CPU inference
+            memory: "12Gi"
             ephemeral-storage: "30Gi"
           requests:
-            cpu: "1"  # Reduced from 2 to fit on smaller nodes
-            memory: "4Gi"
+            cpu: "2"      # Increased from 1 to 2 for better performance
+            memory: "6Gi"
             ephemeral-storage: "20Gi"
 
         env:
@@ -115,6 +115,9 @@ spec:
 
         - name: QWEN_GPU_LAYERS
           value: "0"  # CPU-only: no GPU layers
+        
+        - name: QWEN_N_CTX
+          value: "2048"  # Context window size
 
         # LLaMA Model Path
         - name: LLAMA_MODEL_PATH
@@ -123,9 +126,12 @@ spec:
         - name: LLAMA_GPU_LAYERS
           value: "0"  # CPU-only: no GPU layers
 
-        # CPU inference - use all available threads
+        # CPU inference optimizations - CRITICAL FOR SPEED
         - name: LLM_N_THREADS
-          value: "4"  # Use all CPU cores
+          value: "8"  # Increased from 4 to 8 for faster inference
+        
+        - name: LLM_N_BATCH
+          value: "512"  # Batch size for prompt processing (faster prompt eval)
 
         # Redis
         - name: REDIS_URL
