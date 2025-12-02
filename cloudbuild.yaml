@@ -2,7 +2,7 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _IMAGE_PATH: "us-central1-docker.pkg.dev/counselgpt-cse239/counselgpt-image/counselgptapi"
+  _IMAGE_PATH: "us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/counselgptapi"
 
 steps:
   # 1. Build Docker image
