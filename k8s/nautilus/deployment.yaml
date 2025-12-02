@@ -42,18 +42,49 @@ spec:
         - name: QWEN_LORA_PATH
           value: "/models/qwen/legal_lora_adapter_only_25k.gguf"
         - name: QWEN_GPU_LAYERS
-          value: "999"
+          value: "-1"
 
         - name: LLAMA_MODEL_PATH
           value: "/models/llama/llama-2-7b-chat.Q4_K_M.gguf"
         - name: LLAMA_GPU_LAYERS
-          value: "35"
+          value: "-1"
 
         - name: LLM_N_THREADS
           value: "8"
 
         - name: REDIS_URL
           value: "redis://counselgpt-redis-mthiruma:6379"
+
+        # Health checks
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30  # Allow up to 5 minutes for models to load (30 * 10s)
+          successThreshold: 1
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
 
         volumeMounts:
         - name: model-volume
