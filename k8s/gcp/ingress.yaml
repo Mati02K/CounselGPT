@@ -9,7 +9,7 @@ metadata:
     kubernetes.io/ingress.allow-http: "true"
 spec:
   rules:
-  - host: 35.233.210.109.nip.io 
+  - host: 34.111.194.27.nip.io 
     http:
       paths:
       - path: /
