@@ -172,5 +172,5 @@ spec:
       volumes:
       - name: model-storage
         persistentVolumeClaim:
-          claimName: counselgpt-models
+          claimName: counselgpt
 
