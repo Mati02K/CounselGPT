@@ -28,6 +28,42 @@ CACHE_MISSES = Counter(
 def add_metrics_middleware(app):
     """
     Attach Prometheus Instrumentator to FastAPI
-    Exposes /metrics endpoint automatically
+    Exposes /metrics endpoint with http_requests_total counter
     """
-    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+    instrumentator = Instrumentator(
+        should_group_status_codes=False,  # Keep exact status codes (200, 404, 500, etc.)
+        should_ignore_untemplated=False,
+        should_respect_env_var=True,
+        should_instrument_requests_inprogress=True,
+        excluded_handlers=[],
+        inprogress_name="http_requests_inprogress",
+        inprogress_labels=True,
+    )
+    
+    # Add request counter with status codes
+    instrumentator.add(
+        instrumentator.metrics.requests(
+            metric_name="http_requests",  # Will create http_requests_total
+            metric_doc="Total HTTP requests",
+            metric_namespace="",
+            metric_subsystem="",
+            should_include_handler=True,
+            should_include_method=True,
+            should_include_status=True,
+        )
+    )
+    
+    # Add latency histogram
+    instrumentator.add(
+        instrumentator.metrics.latency(
+            metric_name="http_request_duration_seconds",
+            metric_doc="HTTP request latency",
+            metric_namespace="",
+            metric_subsystem="",
+            should_include_handler=True,
+            should_include_method=True,
+            should_include_status=True,
+        )
+    )
+    
+    instrumentator.instrument(app).expose(app, endpoint="/metrics")
