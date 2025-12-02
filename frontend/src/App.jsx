@@ -16,8 +16,8 @@ const parseModels = () => {
   }
   // Default models if parsing fails
   return [
-    { id: "qwen2.5-7b-legal", name: "Qwen2.5-7B Legal (LoRA)" },
-    { id: "qwen2.5-7b-base", name: "Qwen2.5-7B Base" },
+    { id: "qwen", name: "Qwen2.5-7B Legal (LoRA)" },
+    { id: "llama", name: "Llama-2-7B" },
   ];
 };
 
@@ -125,8 +125,6 @@ function App() {
 
       // Map frontend model IDs to backend model names
       const modelMapping = {
-        "qwen2.5-7b-legal": "qwen",
-        "qwen2.5-7b-base": "qwen",
         "qwen": "qwen",
         "llama": "llama"
       };
