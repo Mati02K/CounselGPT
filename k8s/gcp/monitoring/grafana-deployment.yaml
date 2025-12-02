@@ -45,6 +45,10 @@ spec:
           value: "false"
         - name: GF_INSTALL_PLUGINS
           value: "redis-datasource"
+        - name: GF_SERVER_ROOT_URL
+          value: "https://34.111.194.27.nip.io/grafana"
+        - name: GF_SERVER_SERVE_FROM_SUB_PATH
+          value: "true"
         
         resources:
           requests:

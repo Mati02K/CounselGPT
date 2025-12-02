@@ -12,6 +12,13 @@ spec:
   - host: 34.111.194.27.nip.io 
     http:
       paths:
+      - path: /grafana
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3000
       - path: /
         pathType: Prefix
         backend:

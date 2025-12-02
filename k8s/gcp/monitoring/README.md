@@ -19,14 +19,27 @@ kubectl wait --for=condition=ready pod -l app=grafana --timeout=120s
 
 ## Access Grafana
 
-```bash
-# Port-forward
-kubectl port-forward svc/grafana 3000:3000
+### External Access (Recommended)
 
-# Open browser
-# URL: http://localhost:3000
-# Username: admin
-# Password: admin
+```
+URL: https://34.111.194.27.nip.io/grafana
+Username: admin
+Password: admin
+```
+
+### Local Access (Port-forward)
+
+```bash
+kubectl port-forward svc/grafana 3000:3000
+# Open: http://localhost:3000
+```
+
+⚠️ **Important**: Change the default admin password after first login!
+
+```bash
+# Change password via UI: User Icon → Change Password
+# Or via CLI:
+kubectl exec -it deployment/grafana -- grafana-cli admin reset-admin-password <new-password>
 ```
 
 ## Dashboards

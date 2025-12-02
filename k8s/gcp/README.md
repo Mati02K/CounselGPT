@@ -74,14 +74,20 @@ kubectl apply -f ingress/
 
 ## Access Grafana
 
-```bash
-# Port-forward Grafana
-kubectl port-forward svc/grafana 3000:3000
-
-# Open: http://localhost:3000
-# Username: admin
-# Password: admin (change in production!)
+**External URL** (via Ingress):
 ```
+https://34.111.194.27.nip.io/grafana
+Username: admin
+Password: admin
+```
+
+**Or via port-forward** (local development):
+```bash
+kubectl port-forward svc/grafana 3000:3000
+# Open: http://localhost:3000
+```
+
+⚠️ **Security**: Change the default password after first login!
 
 ## Common Commands
 
