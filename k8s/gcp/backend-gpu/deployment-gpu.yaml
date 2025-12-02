@@ -20,6 +20,10 @@ spec:
       labels:
         app: counselgpt-api
         tier: gpu
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
 
     spec:
       # Run ONLY on GPU nodes

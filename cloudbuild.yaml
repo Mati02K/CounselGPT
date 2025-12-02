@@ -5,6 +5,7 @@ options:
 substitutions:
   _IMAGE_PATH: "us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/counselgptapi"
   _ROUTER_IMAGE: "us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/counselgpt-router"
+  _EMBEDDING_IMAGE: "us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/semantic-embeddings"
 
 steps:
   # ========================================
@@ -52,6 +53,20 @@ steps:
       - '${_ROUTER_IMAGE}:${SHORT_SHA}'
       - '-t'
       - '${_ROUTER_IMAGE}:latest'
+      - 'deployment'
+
+  # 1d. Build Embeddings image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-embeddings'
+    waitFor: ['-']  # Start immediately (parallel)
+    args:
+      - 'build'
+      - '-f'
+      - 'deployment/Dockerfile.embeddings'
+      - '-t'
+      - '${_EMBEDDING_IMAGE}:${SHORT_SHA}'
+      - '-t'
+      - '${_EMBEDDING_IMAGE}:latest'
       - 'deployment'
 
   # ========================================
@@ -106,6 +121,22 @@ steps:
       - 'push'
       - '${_ROUTER_IMAGE}:latest'
 
+  # 2g. Push Embeddings image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-embeddings'
+    waitFor: ['build-embeddings']
+    args:
+      - 'push'
+      - '${_EMBEDDING_IMAGE}:${SHORT_SHA}'
+
+  # 2h. Push Embeddings latest tag (parallel to embeddings-sha push)
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-embeddings-latest'
+    waitFor: ['build-embeddings']
+    args:
+      - 'push'
+      - '${_EMBEDDING_IMAGE}:latest'
+
   # ========================================
   # DEPLOY PHASE (after all images pushed)
   # ========================================
@@ -135,10 +166,15 @@ steps:
         # Update image references
         sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:gpu-${SHORT_SHA}|g" k8s/gcp/backend-gpu/deployment-gpu.yaml
         sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:cpu-${SHORT_SHA}|g" k8s/gcp/backend-cpu/deployment-cpu.yaml
+        sed -i "s|REPLACE_EMBEDDING_IMAGE|${_EMBEDDING_IMAGE}:${SHORT_SHA}|g" k8s/gcp/semantic-cache/deployment.yaml
         
-        # Apply infrastructure (Redis, PVC)
+        # Apply infrastructure (PVC for models)
         echo "📦 Applying infrastructure..."
         kubectl apply -f k8s/gcp/infrastructure/
+        
+        # Apply semantic cache (Redis Stack + Embeddings)
+        echo "🗄️  Deploying semantic cache..."
+        kubectl apply -f k8s/gcp/semantic-cache/
         
         # Apply GPU backend (deployment + service)
         echo "🎮 Deploying GPU backend..."
@@ -151,6 +187,10 @@ steps:
         # Apply router (creates main counselgpt-api service)
         echo "🧭 Deploying router..."
         kubectl apply -f k8s/gcp/router/
+        
+        # Apply monitoring (Prometheus + Grafana)
+        echo "📊 Deploying monitoring..."
+        kubectl apply -f k8s/gcp/monitoring/
         
         # Apply ingress (external access + SSL)
         echo "🌐 Applying ingress..."
@@ -186,3 +226,5 @@ images:
   - '${_IMAGE_PATH}:cpu-latest'
   - '${_ROUTER_IMAGE}:${SHORT_SHA}'
   - '${_ROUTER_IMAGE}:latest'
+  - '${_EMBEDDING_IMAGE}:${SHORT_SHA}'
+  - '${_EMBEDDING_IMAGE}:latest'

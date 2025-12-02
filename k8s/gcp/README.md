@@ -4,60 +4,101 @@
 
 ```
 k8s/gcp/
-├── infrastructure/          # Shared infrastructure
-│   ├── redis-deployment.yaml
-│   ├── redis-service.yaml
-│   ├── model-pvc.yaml      # Standard PVC
-│   └── model-pvc-filestore.yaml  # Filestore PVC (ReadWriteMany)
+├── infrastructure/          # Model storage
+│   ├── model-pvc.yaml
+│   └── model-pvc-filestore.yaml
 │
-├── backend-gpu/             # GPU backend (CUDA-enabled)
+├── semantic-cache/          # Redis Stack + Embeddings Service
+│   ├── pvc.yaml                # 10GB storage
+│   ├── deployment.yaml         # Redis Stack + SentenceTransformer
+│   ├── service.yaml            # Ports 6379 (Redis), 8000 (Embeddings)
+│   └── redis-commander.yaml    # Optional UI
+│
+├── backend-gpu/             # GPU backend (1 pod, CUDA)
 │   ├── deployment-gpu.yaml
 │   └── service-gpu.yaml
 │
-├── backend-cpu/             # CPU backend (CPU-only)
+├── backend-cpu/             # CPU backend (2-5 pods, HPA)
 │   ├── deployment-cpu.yaml
 │   ├── service-cpu.yaml
-│   └── hpa-cpu.yaml        # Auto-scaling
+│   └── hpa-cpu.yaml
 │
-├── router/                  # Intelligent router
-│   └── deployment.yaml     # Router + service + HPA
+├── router/                  # Smart router (2-5 pods, HPA)
+│   └── deployment.yaml
 │
-├── ingress/                 # External access
+├── monitoring/              # Prometheus + Grafana
+│   ├── prometheus-deployment.yaml
+│   ├── grafana-deployment.yaml
+│   └── grafana-dashboards.yaml
+│
+├── ingress/                 # External access + SSL
 │   ├── ingress.yaml
 │   └── managed-certificate.yaml
 │
-├── apply.sh                 # Deploy everything
-├── delete.sh                # Clean up everything
-└── README.md               # This file
+└── README.md
 ```
 
 ## 🎯 Components
 
 ### Infrastructure
-- **Redis**: Cache for semantic caching
 - **PVC**: Persistent storage for models (ReadWriteOnce or ReadWriteMany)
 
-### Backend GPU
-- **Deployment**: 1 replica with NVIDIA L4 GPU
-- **Service**: Internal service for GPU pods
-- **Image**: `counselgptapi:gpu-*`
-- **Cost**: ~$360/month
+### Components
 
-### Backend CPU
-- **Deployment**: 2-5 replicas (auto-scales)
-- **Service**: Internal service for CPU pods
-- **HPA**: Scales 2-5 pods based on load
-- **Image**: `counselgptapi:cpu-*`
-- **Cost**: ~$60-150/month
+| Component | Purpose | Cost/mo |
+|-----------|---------|---------|
+| **Infrastructure** | Model storage (Filestore) | ~$200 |
+| **Semantic Cache** | Redis with embeddings | ~$6 |
+| **Backend GPU** | 1 pod, NVIDIA L4 | ~$360 |
+| **Backend CPU** | 2-5 pods, auto-scale | ~$100 |
+| **Router** | 2-5 pods, GPU-first routing | ~$20 |
+| **Monitoring** | Prometheus + Grafana | ~$8 |
+| **Ingress** | Load balancer + SSL | Included |
+| **Total** | - | **~$694/mo** |
 
-### Router
-- **Deployment**: 2-5 replicas (auto-scales)
-- **Service**: `counselgpt-api` (main entry point)
-- **Features**: GPU-first routing, circuit breaker, health monitoring
-- **Image**: `counselgpt-router:*`
-- **Cost**: ~$15-30/month
+## Deploy
 
-### Ingress
-- **Ingress**: GCP HTTP(S) load balancer
-- **Certificate**: Managed SSL certificate
-- **Domain**: `*.nip.io` or custom domain
+```bash
+# Using Cloud Build (recommended)
+git push
+
+# Or manually
+kubectl apply -f infrastructure/
+kubectl apply -f semantic-cache/
+kubectl apply -f backend-gpu/
+kubectl apply -f backend-cpu/
+kubectl apply -f router/
+kubectl apply -f monitoring/
+kubectl apply -f ingress/
+```
+
+## Access Grafana
+
+```bash
+# Port-forward Grafana
+kubectl port-forward svc/grafana 3000:3000
+
+# Open: http://localhost:3000
+# Username: admin
+# Password: admin (change in production!)
+```
+
+## Common Commands
+
+```bash
+# Check status
+kubectl get pods
+kubectl get svc
+
+# View logs
+kubectl logs -l tier=gpu -f
+kubectl logs -l app=counselgpt-router -f
+
+# Scale CPU
+kubectl scale deployment counselgpt-api-cpu --replicas=5
+
+# Restart services
+kubectl rollout restart deployment/counselgpt-api-gpu
+kubectl rollout restart deployment/counselgpt-api-cpu
+kubectl rollout restart deployment/counselgpt-router
+```

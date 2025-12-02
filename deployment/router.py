@@ -26,7 +26,7 @@ from fastapi.responses import Response
 
 GPU_URL = os.getenv("GPU_URL", "http://counselgpt-api-gpu:8000")
 CPU_URL = os.getenv("CPU_URL", "http://counselgpt-api-cpu:8000")
-GPU_MAX_INFLIGHT = int(os.getenv("GPU_MAX_INFLIGHT", "4"))
+GPU_MAX_INFLIGHT = int(os.getenv("GPU_MAX_INFLIGHT", "20"))
 BACKEND_TIMEOUT = float(os.getenv("BACKEND_TIMEOUT", "60.0"))
 HEALTH_CHECK_INTERVAL = int(os.getenv("HEALTH_CHECK_INTERVAL", "10"))
 CIRCUIT_BREAKER_THRESHOLD = int(os.getenv("CIRCUIT_BREAKER_THRESHOLD", "5"))
