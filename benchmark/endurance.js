@@ -1,0 +1,127 @@
+import http from 'k6/http';
+
+// 2 hours endurance test
+export const options = {
+  stages: [
+    { duration: '2h', target: 20 },   // Maintain 20 RPS for 2 hours
+  ],
+};
+
+// 100 diverse prompts to avoid redis cache
+const prompts = [
+  "Explain fraud in law.",
+  "Define negligence with example.",
+  "What is due diligence?",
+  "Explain tenant eviction rules.",
+  "What is a civil lawsuit?",
+  "How to file a small claims case?",
+  "Explain tort law in one paragraph.",
+  "What does breach of contract mean?",
+  "Give an overview of intellectual property.",
+  "What are common landlord rights?",
+  "What is a legal affidavit?",
+  "How to notarize a document?",
+  "Explain arbitration vs mediation.",
+  "Is verbal contract valid?",
+  "What is a liability waiver?",
+  "Explain immigration parole.",
+  "What are US re-entry rules?",
+  "How to appeal a visa denial?",
+  "What is an asylum claim?",
+  "Explain employment-at-will.",
+  "What is wrongful termination?",
+  "How to write a demand letter?",
+  "Explain burden of proof.",
+  "What is Habeas Corpus?",
+  "Define power of attorney.",
+  "What is HIPAA compliance?",
+  "Explain GDPR in short.",
+  "What is defamation?",
+  "Explain slander vs libel.",
+  "How to break a lease legally?",
+  "Tenant rights against eviction?",
+  "Can a landlord enter without notice?",
+  "What is unlawful detainer?",
+  "How to challenge a traffic ticket?",
+  "Explain DUI penalties.",
+  "What is reckless driving?",
+  "Define probable cause.",
+  "What is a Miranda warning?",
+  "What are constitutional rights?",
+  "What is a subpoena?",
+  "Explain class action lawsuit.",
+  "What is settlement negotiation?",
+  "Explain summary judgment.",
+  "What is statute of limitations?",
+  "Define prima facie.",
+  "Explain trust vs will.",
+  "How to contest a will?",
+  "Explain divorce mediation.",
+  "What is child custody?",
+  "How to adopt a child?",
+  "Define domestic violence.",
+  "Explain restraining order.",
+  "What is consumer fraud?",
+  "Explain product liability.",
+  "What is workers compensation?",
+  "How to sue for harassment?",
+  "What is whistleblower protection?",
+  "Explain discrimination law.",
+  "What is hostile work environment?",
+  "Explain overtime pay rules.",
+  "What is FMLA?",
+  "What is bankruptcy?",
+  "How to file Chapter 7?",
+  "Define secured debt.",
+  "Define unsecured debt.",
+  "Explain credit report rights.",
+  "What is loan default?",
+  "Define foreclosure.",
+  "Explain mortgage refinancing.",
+  "What is escrow?",
+  "Explain title insurance.",
+  "What is real estate fraud?",
+  "Explain HOA rules.",
+  "What is easement?",
+  "Define eminent domain.",
+  "What is cybercrime?",
+  "Explain identity theft.",
+  "What is wire fraud?",
+  "Explain phishing scams.",
+  "What is money laundering?",
+  "Define criminal conspiracy.",
+  "What is plea bargain?",
+  "Explain bail vs bond.",
+  "What is parole?",
+  "What is probation?",
+  "Explain sentencing guidelines.",
+  "What are constitutional amendments?",
+  "Explain 4th amendment.",
+  "Explain 5th amendment rights.",
+  "Explain 6th amendment.",
+  "Explain freedom of speech.",
+  "Define hate crime.",
+  "What is sexual assault?",
+  "What is felony vs misdemeanor?",
+  "Explain criminal record sealing.",
+  "What is expungement?",
+  "How to check immigration status?",
+  "Explain lawful permanent residence.",
+  "What is naturalization process?"
+];
+
+const API_URL = __ENV.API_URL;
+
+export default function () {
+  const prompt = prompts[Math.floor(Math.random() * prompts.length)];
+
+  const payload = JSON.stringify({
+    prompt: prompt,
+    max_tokens: 80,
+    use_cache: false,
+  });
+
+  http.post(API_URL, payload, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}

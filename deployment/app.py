@@ -1,9 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-import logging
-import time
-import os
-
 from modelclass import CounselGPTModel
 from cache import ResponseCache
 from metrics import (
@@ -14,6 +10,9 @@ from metrics import (
     add_metrics_middleware
 )
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+import time
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("counselgpt-api")
@@ -91,7 +90,7 @@ def infer(req: InferRequest):
     )
 
     # -----------------------------
-    # 1️⃣ Cache Check
+    # Cache Check
     # -----------------------------
     if req.use_cache:
         cached_response = cache.get(req.prompt, req.max_tokens)
@@ -109,7 +108,7 @@ def infer(req: InferRequest):
             CACHE_MISSES.inc()
 
     # -----------------------------
-    # 2️⃣ Validate Model Name
+    # Validate Model Name
     # -----------------------------
     if req.model_name.lower() not in ["qwen", "llama"]:
         raise HTTPException(
@@ -118,7 +117,7 @@ def infer(req: InferRequest):
         )
 
     # -----------------------------
-    # 3️⃣ Run Inference Using ModelFactory
+    # Run Inference Using ModelFactory
     # -----------------------------
     try:
         model = CounselGPTModel(model_name=req.model_name, use_gpu=req.use_gpu)
@@ -145,7 +144,7 @@ def infer(req: InferRequest):
         raise HTTPException(status_code=500, detail="Internal server error")
 
     # -----------------------------
-    # 4️⃣ Cache Result
+    # Cache Result
     # -----------------------------
     if req.use_cache:
         cache.set(req.prompt, req.max_tokens, result, ttl=3600)

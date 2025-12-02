@@ -15,28 +15,23 @@ const API_URL = __ENV.API_URL;
 
 
 // Five prompts to avoid Redis cache 
-// const prompts = [
-//   "Explain fraud in simple terms.",
-//   "What is vessel in Law?.",
-//   "I am a immigrant what are the rules I should know before travelling outside US?",
-//   "What are the things I need to verify in my legal agreement.",
-//   "Give a short overview of taffic laws in Nashville."
-// ];
-
+// TODO make more prompts (like 100)
 const prompts = [
-  "1. Explain fraud in simple terms?",
-  "2. What is vessel in Law?",
-  "3. I am a immigrant what are the rules I should know before travelling outside US, do you know",
-  "5. What are the things I need to verify in my legal agreement?",
-  "4. Give a short overview of taffic laws in Nashville!"
+  "Explain fraud in simple terms.",
+  "What is vessel in Law?.",
+  "I am a immigrant what are the rules I should know before travelling outside US?",
+  "What are the things I need to verify in my legal agreement.",
+  "Give a short overview of taffic laws in Nashville."
 ];
+
 
 export default function () {
   const prompt = randomItem(prompts);
 
   const payload = JSON.stringify({
     prompt: prompt,
-    max_tokens: 150
+    max_tokens: 150,
+    use_cache: false,
   });
 
   const res = http.post(API_URL, payload, {
