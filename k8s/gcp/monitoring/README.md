@@ -5,8 +5,9 @@
 - **Prometheus**: Metrics collection from all services
 - **Grafana**: Visualization dashboards
 - **cAdvisor (via kubelet)**: Pod-level metrics (CPU, memory per pod)
-- **DCGM Exporter**: NVIDIA GPU metrics (utilization, memory, temperature)
 - **Redis Exporter**: Included in semantic-cache deployment
+
+**Note:** GPU metrics (DCGM Exporter) not included - only needed if you have GPU nodes.
 
 ## Deploy
 
