@@ -26,7 +26,7 @@ const DEFAULT_MODEL = import.meta.env.VITE_DEFAULT_MODEL || MODELS[0].id;
 
 function App() {
   const [conversations, setConversations] = useState([
-    { id: 1, title: "New Chat", messages: [] }
+    { id: 1, title: "New Chat", messages: [], contextTokens: 0 }
   ]);
   const [currentConvId, setCurrentConvId] = useState(1);
   const [input, setInput] = useState("");
@@ -34,6 +34,7 @@ function App() {
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [healthStatus, setHealthStatus] = useState({ status: 'checking', message: 'Checking server...' });
+  const [contextWindow, setContextWindow] = useState(2048); // Default context window
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -75,6 +76,10 @@ function App() {
           message: 'Connected',
           modelLoaded: data.model_loaded
         });
+        // Update context window from backend
+        if (data.context_window) {
+          setContextWindow(data.context_window);
+        }
       } else {
         setHealthStatus({ 
           status: 'error', 
@@ -131,11 +136,18 @@ function App() {
       
       const backendModelName = modelMapping[selectedModel] || "qwen";
 
+      // Build conversation history for context
+      const currentMessages = updatedConversations.find(c => c.id === currentConvId)?.messages || [];
+      const apiMessages = currentMessages.map(msg => ({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.text
+      }));
+
       const res = await fetch(`${API_URL}/infer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          prompt: input, 
+          messages: apiMessages,  // Send full conversation history
           max_tokens: 400,  // Balanced: fast but detailed (300 words)
           model_name: backendModelName,
           use_gpu: true,
@@ -158,7 +170,11 @@ function App() {
 
       setConversations(prev => prev.map(conv => {
         if (conv.id === currentConvId) {
-          return { ...conv, messages: [...conv.messages, botMessage] };
+          return { 
+            ...conv, 
+            messages: [...conv.messages, botMessage],
+            contextTokens: data.estimated_tokens || 0
+          };
         }
         return conv;
       }));
@@ -201,7 +217,7 @@ function App() {
 
   const newChat = () => {
     const newId = Math.max(...conversations.map(c => c.id)) + 1;
-    setConversations([...conversations, { id: newId, title: "New Chat", messages: [] }]);
+    setConversations([...conversations, { id: newId, title: "New Chat", messages: [], contextTokens: 0 }]);
     setCurrentConvId(newId);
   };
 
@@ -361,7 +377,7 @@ function App() {
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="12 6 12 12 16 14"/>
                   </svg>
-                  ctx: 8,192
+                  ctx: {contextWindow.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -418,6 +434,30 @@ function App() {
         </div>
 
         <div className="input-container">
+          {/* Context Usage Indicator */}
+          {currentConv && currentConv.messages.length > 0 && (
+            <div className="context-indicator">
+              <div className="context-bar-container">
+                <div 
+                  className="context-bar" 
+                  style={{
+                    width: `${Math.min((currentConv.contextTokens / contextWindow) * 100, 100)}%`,
+                    backgroundColor: 
+                      currentConv.contextTokens / contextWindow > 0.8 ? '#ef4444' :
+                      currentConv.contextTokens / contextWindow > 0.6 ? '#f59e0b' :
+                      '#10a37f'
+                  }}
+                />
+              </div>
+              <span className="context-text">
+                {currentConv.contextTokens.toLocaleString()} / {contextWindow.toLocaleString()} tokens
+                {currentConv.contextTokens / contextWindow > 0.8 && (
+                  <span className="context-warning"> ⚠️ Context limit approaching</span>
+                )}
+              </span>
+            </div>
+          )}
+          
           <div className="input-wrapper">
             <button className="attach-btn" title="Attach file" disabled>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -461,7 +501,7 @@ function App() {
                   <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
               )}
-        </button>
+            </button>
           </div>
           <div className="input-footer">
             <span>Press <kbd>Enter</kbd> to send, <kbd>Shift</kbd> + <kbd>Enter</kbd> for new line</span>

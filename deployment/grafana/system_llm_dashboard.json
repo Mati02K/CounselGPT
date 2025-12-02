@@ -205,6 +205,6 @@
   "schemaVersion": 38,
   "style": "light",
   "tags": ["llm", "system"],
-  "title": "System + LLM API Overview (Fixed)",
+  "title": "System + LLM API Overview",
   "version": 1
 }

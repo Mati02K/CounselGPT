@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from typing import Optional
 from modelclass import CounselGPTModel
 from cache import ResponseCache
 from metrics import (
@@ -45,8 +46,16 @@ cache = ResponseCache(redis_url=redis_url)
 # -----------------------------
 # Request/Response Models
 # -----------------------------
+class Message(BaseModel):
+    role: str = Field(..., description="Message role: 'user' or 'assistant'")
+    content: str = Field(..., min_length=1, description="Message content")
+
+
 class InferRequest(BaseModel):
-    prompt: str = Field(..., min_length=1, max_length=4096, description="User prompt/question")
+    # New: conversation history (preferred)
+    messages: Optional[list[Message]] = Field(None, description="Conversation history (preferred over single prompt)")
+    # Legacy: single prompt (for backward compatibility)
+    prompt: Optional[str] = Field(None, min_length=1, max_length=4096, description="User prompt/question (legacy)")
     max_tokens: int = Field(400, ge=1, le=2048, description="Maximum tokens to generate (default: 400, ~300 words)")
     model_name: str = Field("qwen", description="Model to use: 'qwen' (Qwen2.5-7B with LoRA) or 'llama' (Llama-2-7B)")
     use_gpu: bool = Field(True, description="Use GPU acceleration (recommended)")
@@ -59,6 +68,10 @@ class InferResponse(BaseModel):
     response_length: int = Field(..., description="Length of generated response in characters")
     cached: bool = Field(default=False, description="Whether response was served from cache")
     model_used: str = Field(default="qwen", description="Model that generated the response")
+    # New: context tracking
+    estimated_tokens: int = Field(default=0, description="Approximate tokens in prompt (chars / 4)")
+    context_window: int = Field(default=2048, description="Maximum context window size")
+    messages_in_context: int = Field(default=1, description="Number of messages in context")
 
 
 # -----------------------------
@@ -70,6 +83,8 @@ def health_check():
         "status": "healthy",
         "cache": cache.stats(),
         "available_models": ["qwen", "llama"],
+        "context_window": 2048,  # Token limit for models
+        "max_tokens_per_request": 2048,
     }
 
 
@@ -79,30 +94,62 @@ def health_check():
 @app.post("/infer", response_model=InferResponse)
 def infer(req: InferRequest):
     """
-    Perform model inference (Qwen or Llama)
+    Perform model inference (Qwen or Llama) with conversation context
     """
-
+    
+    # -----------------------------
+    # Build Prompt from Messages or Legacy Prompt
+    # -----------------------------
+    if req.messages:
+        # New: conversation history
+        conversation_text = ""
+        for msg in req.messages:
+            role_label = "User" if msg.role == "user" else "Assistant"
+            conversation_text += f"{role_label}: {msg.content}\n\n"
+        
+        # Add final prompt for assistant
+        conversation_text += "Assistant:"
+        full_prompt = conversation_text
+        messages_count = len(req.messages)
+    elif req.prompt:
+        # Legacy: single prompt
+        full_prompt = req.prompt
+        messages_count = 1
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Either 'messages' or 'prompt' must be provided"
+        )
+    
+    # Estimate token count (rough: 1 token ≈ 4 chars)
+    estimated_tokens = len(full_prompt) // 4
+    
     logger.info(
         f"Received infer request model={req.model_name}, "
         f"use_gpu={req.use_gpu}, "
         f"max_tokens={req.max_tokens}, "
-        f"use_cache={req.use_cache}"
+        f"use_cache={req.use_cache}, "
+        f"messages={messages_count}, "
+        f"est_tokens={estimated_tokens}"
     )
 
     # -----------------------------
     # Cache Check
     # -----------------------------
     if req.use_cache:
-        cached_response = cache.get(req.prompt, req.max_tokens)
+        cached_response = cache.get(full_prompt, req.max_tokens)
         if cached_response:
             CACHE_HITS.inc()
-            logger.info(f"Cache hit for prompt (length={len(req.prompt)})")
+            logger.info(f"Cache hit for prompt (length={len(full_prompt)})")
             return InferResponse(
                 response=cached_response,
-                prompt_length=len(req.prompt),
+                prompt_length=len(full_prompt),
                 response_length=len(cached_response),
                 cached=True,
                 model_used=req.model_name,
+                estimated_tokens=estimated_tokens,
+                context_window=2048,
+                messages_in_context=messages_count,
             )
         else:
             CACHE_MISSES.inc()
@@ -123,7 +170,7 @@ def infer(req: InferRequest):
         model = CounselGPTModel(model_name=req.model_name, use_gpu=req.use_gpu)
 
         start_time = time.time()
-        result = model.infer(req.prompt, req.max_tokens)
+        result = model.infer(full_prompt, req.max_tokens)
         inference_time = time.time() - start_time
         
         INFERENCE_TIME.observe(inference_time)
@@ -147,14 +194,17 @@ def infer(req: InferRequest):
     # Cache Result
     # -----------------------------
     if req.use_cache:
-        cache.set(req.prompt, req.max_tokens, result, ttl=3600)
+        cache.set(full_prompt, req.max_tokens, result, ttl=3600)
 
     return InferResponse(
         response=result,
-        prompt_length=len(req.prompt),
+        prompt_length=len(full_prompt),
         response_length=len(result),
         cached=False,
         model_used=req.model_name,
+        estimated_tokens=estimated_tokens,
+        context_window=2048,
+        messages_in_context=messages_count,
     )
 
 

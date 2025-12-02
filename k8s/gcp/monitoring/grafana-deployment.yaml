@@ -65,6 +65,8 @@ spec:
           mountPath: /etc/grafana/provisioning/dashboards
         - name: dashboards
           mountPath: /var/lib/grafana/dashboards
+        - name: aggregate-dashboard
+          mountPath: /var/lib/grafana/dashboards/aggregate
         - name: storage
           mountPath: /var/lib/grafana
         
@@ -92,6 +94,9 @@ spec:
       - name: dashboards
         configMap:
           name: grafana-dashboards
+      - name: aggregate-dashboard
+        configMap:
+          name: grafana-aggregate-dashboard
       - name: storage
         emptyDir: {}  # Use PVC for production
 ---
