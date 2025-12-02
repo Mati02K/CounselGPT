@@ -4,5 +4,5 @@ metadata:
   name: counselgpt-ssl-cert
 spec:
   domains:
-    - 136.110.236.198.nip.io
+    - 35.233.210.109.nip.io
 
