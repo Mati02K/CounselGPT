@@ -82,7 +82,7 @@ spec:
       # -----------------------------
       containers:
       - name: counselgpt-api
-        image: us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/counselgptapi:e14e6be
+        image: REPLACE_IMAGE
         imagePullPolicy: IfNotPresent
 
         resources:
