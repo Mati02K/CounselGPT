@@ -5,9 +5,10 @@ import logging
 import os
 import httpx
 import time
+import threading
 from typing import Optional, List
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("counselgpt-api.cache")
 
 class ResponseCache:
     def __init__(
@@ -16,389 +17,237 @@ class ResponseCache:
         embedding_url: str = "http://counselgpt-redis:8000",
         use_semantic: bool = True,
         similarity_threshold: float = 0.95,
-        max_retries: int = 3,
-        retry_delay: float = 1.0
+        retry_delay: float = 5.0
     ):
-        """Initialize Redis Cache with semantic search support
+        """Initialize Redis Cache in a non-blocking background thread."""
 
-        Args:
-            redis_url: Redis connection URL
-            embedding_url: Embedding service URL (sidecar in semantic-cache pod)
-            use_semantic: Enable semantic caching (default: True)
-            similarity_threshold: Minimum similarity for cache hit (default: 0.95)
-            max_retries: Maximum number of retry attempts (default: 3)
-            retry_delay: Initial delay between retries in seconds (default: 1.0)
-        """
-        # Store connection parameters for retry logic
+        logger.setLevel(logging.INFO)
         self.redis_url = redis_url
         self.embedding_url = embedding_url
-        self.max_retries = max_retries
         self.retry_delay = retry_delay
-        
-        # Redis connection with retry
-        self.redis_client = None
-        self._connect_redis()
-        
-        # Embedding service
-        self.use_semantic = use_semantic
         self.similarity_threshold = similarity_threshold
+        
+        # Flags
+        self.use_semantic = use_semantic
+        self.is_connected = False
+        self.embedding_available = False
+        
+        # Clients (Initially None)
+        self.redis_client = None
         self.embedding_client = None
-        self._connect_embedding_service()
-    
-    def _connect_redis(self) -> bool:
-        """Connect to Redis with retry logic and exponential backoff
+
+        # Start connection logic in a background thread so app startup isn't blocked
+        self._stop_event = threading.Event()
+        self._bg_thread = threading.Thread(target=self._background_monitor, daemon=True)
+        self._bg_thread.start()
         
-        Returns:
-            bool: True if connection successful, False otherwise
+        logger.info("ResponseCache initialized (Connection strictly in background)")
+
+    def _background_monitor(self):
         """
-        for attempt in range(self.max_retries):
-            try:
-                self.redis_client = redis.from_url(self.redis_url, decode_responses=False)
-                self.redis_client.ping()
-                logger.info("✓ Redis connected successfully")
-                return True
-            except Exception as e:
-                if attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2 ** attempt)  # Exponential backoff
-                    logger.warning(f"Redis connection attempt {attempt + 1}/{self.max_retries} failed: {e}. Retrying in {delay:.1f}s...")
-                    time.sleep(delay)
-                else:
-                    logger.error(f"Redis connection failed after {self.max_retries} attempts: {e}. Caching disabled.")
-                    self.redis_client = None
-                    return False
-        return False
-    
-    def _connect_embedding_service(self) -> bool:
-        """Connect to embedding service with retry logic
-        
-        Returns:
-            bool: True if connection successful, False otherwise
+        Background loop that attempts to connect and maintain connections.
+        This runs forever (daemon) checking health without blocking the main app.
         """
-        if not self.use_semantic or not self.redis_client:
-            return False
-        
-        # Initialize HTTP client
-        if self.embedding_client is None:
-            self.embedding_client = httpx.Client(timeout=5.0)
-        
-        for attempt in range(self.max_retries):
-            try:
-                response = self.embedding_client.get(f"{self.embedding_url}/health", timeout=5.0)
-                if response.status_code == 200:
-                    info = response.json()
-                    logger.info(f"✓ Embedding service connected: {info.get('model')} ({info.get('dimension')} dims)")
-                    return True
-                else:
-                    if attempt < self.max_retries - 1:
-                        delay = self.retry_delay * (2 ** attempt)
-                        logger.warning(f"Embedding service unhealthy (status {response.status_code}). Retrying in {delay:.1f}s...")
-                        time.sleep(delay)
-                    else:
-                        logger.warning(f"Embedding service unhealthy after {self.max_retries} attempts. Falling back to exact matching.")
-                        self.use_semantic = False
-                        return False
-            except Exception as e:
-                if attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2 ** attempt)
-                    logger.warning(f"Embedding service unavailable (attempt {attempt + 1}/{self.max_retries}): {e}. Retrying in {delay:.1f}s...")
-                    time.sleep(delay)
-                else:
-                    logger.warning(f"Embedding service unavailable after {self.max_retries} attempts: {e}. Falling back to exact matching.")
-                    self.use_semantic = False
-                    return False
-        return False
-    
-    def _ensure_redis_connection(self) -> bool:
-        """Ensure Redis connection is active, retry if needed
-        
-        Returns:
-            bool: True if connection is active, False otherwise
-        """
-        if self.redis_client is None:
-            return self._connect_redis()
-        
-        try:
-            self.redis_client.ping()
-            return True
-        except Exception as e:
-            logger.warning(f"Redis connection lost: {e}. Attempting to reconnect...")
-            # Close old connection if it exists
-            try:
-                self.redis_client.close()
-            except:
-                pass
-            self.redis_client = None
-            return self._connect_redis()
-    
-    def _ensure_embedding_connection(self) -> bool:
-        """Ensure embedding service connection is active, retry if needed
-        
-        Returns:
-            bool: True if connection is active, False otherwise
-        """
-        if not self.use_semantic:
-            return False
-        
-        if self.embedding_client is None:
-            self.embedding_client = httpx.Client(timeout=5.0)
-        
-        try:
-            response = self.embedding_client.get(f"{self.embedding_url}/health", timeout=5.0)
-            if response.status_code == 200:
-                return True
+        # Initialize HTTP client once for this thread
+        self.embedding_client = httpx.Client(timeout=2.0)
+
+        while not self._stop_event.is_set():
+            # 1. Handle Redis Connection
+            if not self.redis_client:
+                try:
+                    client = redis.from_url(self.redis_url, decode_responses=False, socket_timeout=1.0)
+                    client.ping()
+                    self.redis_client = client
+                    self.is_connected = True
+                    logger.info("✓ Redis connected successfully (Background)")
+                except Exception as e:
+                    logger.debug(f"Background Redis connection failed: {e}")
+                    self.is_connected = False
             else:
-                logger.warning(f"Embedding service unhealthy. Attempting to reconnect...")
-                return self._connect_embedding_service()
-        except Exception as e:
-            logger.warning(f"Embedding service check failed: {e}. Attempting to reconnect...")
-            return self._connect_embedding_service()
-    
+                # Keep-alive check
+                try:
+                    self.redis_client.ping()
+                except Exception:
+                    logger.warning("Redis connection lost. Resetting...")
+                    self.redis_client = None
+                    self.is_connected = False
+
+            # 2. Handle Embedding Service (only if Redis is up and semantic is requested)
+            if self.use_semantic and self.is_connected:
+                try:
+                    resp = self.embedding_client.get(f"{self.embedding_url}/health", timeout=2.0)
+                    if resp.status_code == 200:
+                        if not self.embedding_available:
+                            logger.info("✓ Embedding service connected (Background)")
+                        self.embedding_available = True
+                    else:
+                        self.embedding_available = False
+                except Exception:
+                    self.embedding_available = False
+
+            # Wait before next check
+            time.sleep(self.retry_delay)
+
     def _generate_key(self, prompt: str, max_tokens: int) -> str:
-        """Generate cache key from prompt + params
-
-        Args:
-            prompt (str): Prompt from the user
-            max_tokens (int): Max tokens allowed
-
-        Returns:
-            str: Hashed Key for Redis
-        """
         content = f"{prompt}:{max_tokens}"
         return f"llama:cache:{hashlib.sha256(content.encode()).hexdigest()}"
     
     def _get_embedding(self, text: str) -> Optional[List[float]]:
-        """Get embedding vector for text from embedding service
-
-        Args:
-            text: Text to embed
-
-        Returns:
-            384-dim embedding vector or None if failed
-        """
-        if not self.use_semantic or not self._ensure_embedding_connection():
+        # Fail fast if service not marked available
+        if not self.embedding_available:
             return None
         
         try:
             response = self.embedding_client.post(
                 f"{self.embedding_url}/embed",
                 json={"texts": [text]},
-                timeout=5.0
+                timeout=2.0
             )
-            
             if response.status_code == 200:
-                data = response.json()
-                return data["embeddings"][0]
-            else:
-                logger.error(f"Embedding service error: {response.status_code}")
-                return None
-        
+                return response.json()["embeddings"][0]
         except Exception as e:
-            logger.error(f"Failed to get embedding: {e}")
-            return None
-    
+            logger.error(f"Embedding fetch failed: {e}")
+        return None
+
     def _search_similar(self, embedding: List[float], max_tokens: int) -> Optional[tuple]:
-        """Search for semantically similar cached prompts
-
-        Args:
-            embedding: Query embedding vector
-            max_tokens: Max tokens parameter (for filtering)
-
-        Returns:
-            Tuple of (cache_key, response, similarity_score) or None
-        """
-        if not self._ensure_redis_connection() or not embedding:
+        if not self.is_connected or not self.redis_client:
             return None
         
         try:
-            # Search all cache keys for similar vectors
-            # Simple approach: scan and compare (for < 10k entries)
-            # For production with >10k entries, use Redis VSS (RediSearch)
-            
+            # Note: SCAN is slow for large DBs. 
             best_score = 0.0
             best_key = None
             best_response = None
             
+            # Using scan_iter is safer than keys()
             for key in self.redis_client.scan_iter(match="llama:cache:*"):
                 try:
-                    cached_data = json.loads(self.redis_client.get(key))
+                    raw = self.redis_client.get(key)
+                    if not raw: continue
                     
-                    # Check if same max_tokens
-                    if cached_data.get("max_tokens") != max_tokens:
-                        continue
+                    cached_data = json.loads(raw)
+                    if cached_data.get("max_tokens") != max_tokens: continue
                     
-                    cached_embedding = cached_data.get("embedding")
-                    if not cached_embedding:
-                        continue
+                    cached_emb = cached_data.get("embedding")
+                    if not cached_emb: continue
                     
-                    # Compute cosine similarity
-                    score = self._cosine_similarity(embedding, cached_embedding)
-                    
+                    score = self._cosine_similarity(embedding, cached_emb)
                     if score > best_score:
                         best_score = score
-                        best_key = key.decode() if isinstance(key, bytes) else key
+                        best_key = key
                         best_response = cached_data.get("response")
-                
-                except Exception as e:
-                    continue  # Skip malformed entries
-            
+                except (json.JSONDecodeError, TypeError):
+                    continue
+
             if best_score >= self.similarity_threshold:
-                logger.info(f"Semantic match found: similarity={best_score:.3f}")
                 return (best_key, best_response, best_score)
-            
-            return None
-        
         except Exception as e:
             logger.error(f"Semantic search error: {e}")
-            return None
-    
+        return None
+
     def _cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
-        """Compute cosine similarity between two vectors
-
-        Args:
-            vec1: First vector
-            vec2: Second vector
-
-        Returns:
-            Cosine similarity score (0-1)
-        """
+        import math
         try:
-            import math
-            
             dot_product = sum(a * b for a, b in zip(vec1, vec2))
             magnitude1 = math.sqrt(sum(a * a for a in vec1))
             magnitude2 = math.sqrt(sum(b * b for b in vec2))
-            
-            if magnitude1 == 0 or magnitude2 == 0:
-                return 0.0
-            
+            if magnitude1 == 0 or magnitude2 == 0: return 0.0
             return dot_product / (magnitude1 * magnitude2)
-        
-        except Exception as e:
-            logger.error(f"Cosine similarity error: {e}")
+        except Exception:
             return 0.0
-    
+
     def get(self, prompt: str, max_tokens: int) -> Optional[str]:
-        """Get stored cache (with semantic search if enabled)
-
-        Args:
-            prompt: User prompt
-            max_tokens: Max tokens parameter
-
-        Returns:
-            Cached response or None
         """
-        if not self._ensure_redis_connection():
+        Non-blocking Get. Returns None immediately if Redis is down.
+        """
+        # 1. Fail Fast Check
+        if not self.is_connected or not self.redis_client:
+            # Do not log here to avoid spamming logs on every request when down
             return None
         
         try:
-            # 1. Try exact match first (fastest)
+            # 2. Exact Match
             key = self._generate_key(prompt, max_tokens)
             cached = self.redis_client.get(key)
-            if cached:
-                # Handle both string and JSON formats
-                if isinstance(cached, bytes):
-                    cached = cached.decode()
-                if cached.startswith("{"):
-                    cached_data = json.loads(cached)
-                    response = cached_data.get("response", cached)
-                else:
-                    response = cached
-                
-                logger.info(f"Cache HIT (exact) for key: {key[:16]}...")
-                return response
             
-            # 2. Try semantic search if enabled
-            if self.use_semantic and self._ensure_embedding_connection():
+            if cached:
+                if isinstance(cached, bytes): cached = cached.decode()
+                # Handle JSON wrapper if present
+                if cached.startswith("{"):
+                    try:
+                        data = json.loads(cached)
+                        return data.get("response", cached)
+                    except:
+                        return cached
+                return cached
+            
+            # 3. Semantic Search (only if enabled and available)
+            if self.use_semantic and self.embedding_available:
                 embedding = self._get_embedding(prompt)
                 if embedding:
                     result = self._search_similar(embedding, max_tokens)
                     if result:
-                        _, response, score = result
-                        logger.info(f"Cache HIT (semantic) similarity={score:.3f}")
-                        return response
-            
-            # 3. Cache miss
-            logger.info(f"Cache MISS for prompt (len={len(prompt)})")
+                        logger.info(f"Cache HIT (semantic) score={result[2]:.2f}")
+                        return result[1]
+
             return None
-        
         except Exception as e:
             logger.error(f"Cache get error: {e}")
             return None
-    
-    def set(self, prompt: str, max_tokens: int, response: str, ttl: int = 1800):
-        """Cache response with TTL (default 30 mins)
 
-        Args:
-            prompt: User prompt
-            max_tokens: Max tokens parameter
-            response: Model response
-            ttl: Time to live in seconds (default: 30 mins)
+    def set(self, prompt: str, max_tokens: int, response: str, ttl: int = 1800):
         """
-        if not self._ensure_redis_connection():
+        Non-blocking Set. Does nothing if Redis is down.
+        """
+        if not self.is_connected or not self.redis_client:
             return
         
         try:
             key = self._generate_key(prompt, max_tokens)
             
-            # Get embedding if semantic caching is enabled
+            # Try to get embedding, but don't fail operation if embedding service is down
             embedding = None
-            if self.use_semantic and self._ensure_embedding_connection():
+            if self.use_semantic and self.embedding_available:
                 embedding = self._get_embedding(prompt)
             
-            # Store with embedding for semantic search
             if embedding:
-                cache_data = {
-                    "prompt": prompt,
-                    "max_tokens": max_tokens,
-                    "response": response,
+                data = {
+                    "prompt": prompt, 
+                    "max_tokens": max_tokens, 
+                    "response": response, 
                     "embedding": embedding
                 }
-                self.redis_client.setex(key, ttl, json.dumps(cache_data))
-                logger.info(f"Cached response (semantic) for key: {key[:16]}... (TTL: {ttl}s)")
+                self.redis_client.setex(key, ttl, json.dumps(data))
             else:
-                # Fallback: store response only (backward compatible)
                 self.redis_client.setex(key, ttl, response)
-                logger.info(f"Cached response (exact) for key: {key[:16]}... (TTL: {ttl}s)")
-        
+                
         except Exception as e:
             logger.error(f"Cache set error: {e}")
-    
-    def clear(self, pattern: str = "llama:cache:*"):
-        """Clear all cached responses"
 
-        Args:
-            pattern (_type_, optional): Basic hash key. Defaults to "llama:cache:*".
-
-        Returns:
-            int: returns 0 by default
-        """
-        if not self._ensure_redis_connection():
-            return 0
-        
-        try:
-            keys = list(self.redis_client.scan_iter(match=pattern))
-            if keys:
-                deleted = self.redis_client.delete(*keys)
-                logger.info(f"✓ Cleared {deleted} cached responses")
-                return deleted
-            return 0
-        except Exception as e:
-            logger.error(f"Cache clear error: {e}")
-            return 0
-    
     def stats(self) -> dict:
-        """Get cache statistics"""
-        if not self._ensure_redis_connection():
-            return {"status": "disabled"}
+        """
+        Safe stats for Health Checks. 
+        Returns 'degraded' instead of crashing if Redis is down.
+        """
+        if not self.is_connected or not self.redis_client:
+            return {
+                "status": "degraded", 
+                "detail": "Redis unavailable - Caching disabled"
+            }
         
         try:
             info = self.redis_client.info()
             return {
-                "status": "connected",
+                "status": "healthy",
                 "keys": self.redis_client.dbsize(),
-                "memory_used": info.get("used_memory_human"),
-                "hits": info.get("keyspace_hits", 0),
-                "misses": info.get("keyspace_misses", 0),
+                "memory": info.get("used_memory_human"),
+                "semantic_active": self.embedding_available
             }
-        except Exception as e:
-            return {"status": "error", "error": str(e)}
+        except Exception:
+            return {"status": "degraded", "detail": "Connection Error"}
+
+    def close(self):
+        """Cleanup thread on shutdown"""
+        self._stop_event.set()
+        if self._bg_thread.is_alive():
+            self._bg_thread.join(timeout=1.0)
