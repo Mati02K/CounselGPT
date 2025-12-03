@@ -63,4 +63,5 @@ def add_metrics_middleware(app):
     
     # Instrument the app and expose /metrics endpoint
     # This also automatically adds http_request_duration_seconds histogram
-    instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    instrumentator.instrument(app)
+    instrumentator.expose(app, endpoint="/metrics", include_in_schema=False)

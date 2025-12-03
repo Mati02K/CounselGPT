@@ -15,7 +15,6 @@ This directory contains all backend code and configuration required to run the C
 | `requirements.txt` | Python dependencies for the API service.                           |
 | `models/`          | Local-only model directory used during development.                |
 | `grafana/`         | Customised Grafana dashboard scripts for inferencing               |
-| `prometheus.yml`   | Prometheus scrape configuration (local only).                      |
 
 ---
 

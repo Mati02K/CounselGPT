@@ -27,7 +27,7 @@ RUN pip install --upgrade pip && \
 # --------------------------------------
 # Copy application source
 # --------------------------------------
-COPY app.py cache.py metrics.py modelclass.py prometheus.yml ./
+COPY app.py cache.py metrics.py modelclass.py ./
 
 # Copy the llm module (your model loaders)
 COPY llm ./llm/
