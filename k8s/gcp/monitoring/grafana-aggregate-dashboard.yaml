@@ -82,7 +82,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1h]))",
+              "expr": "sum(increase(router_requests_total{backend=\"gpu\"}[1h]))",
               "refId": "A"
             }
           ],
@@ -141,7 +141,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-cpu\"}[1h]))",
+              "expr": "sum(increase(router_requests_total{backend=\"cpu\"}[1h]))",
               "refId": "A"
             }
           ],
@@ -208,7 +208,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1h])) / (sum(increase(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1h])) + sum(increase(inference_duration_seconds_count{job=\"counselgpt-cpu\"}[1h]))) * 100",
+              "expr": "sum(increase(router_requests_total{backend=\"gpu\"}[1h])) / (sum(increase(router_requests_total{backend=\"gpu\"}[1h])) + sum(increase(router_requests_total{backend=\"cpu\"}[1h]))) * 100",
               "refId": "A"
             }
           ],
@@ -397,7 +397,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1m]))",
+              "expr": "sum(rate(router_requests_total{backend=\"gpu\"}[1m]))",
               "legendFormat": "GPU",
               "refId": "A"
             },
@@ -406,7 +406,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(inference_duration_seconds_count{job=\"counselgpt-cpu\"}[1m]))",
+              "expr": "sum(rate(router_requests_total{backend=\"cpu\"}[1m]))",
               "legendFormat": "CPU",
               "refId": "B"
             }
@@ -507,7 +507,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1h]))",
+              "expr": "sum(increase(router_requests_total{backend=\"gpu\"}[1h]))",
               "legendFormat": "GPU",
               "refId": "A"
             },
@@ -516,7 +516,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-cpu\"}[1h]))",
+              "expr": "sum(increase(router_requests_total{backend=\"cpu\"}[1h]))",
               "legendFormat": "CPU",
               "refId": "B"
             }
@@ -789,6 +789,151 @@ data:
               "custom": {
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
+                "axisLabel": "Latency (seconds)",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 2
+                  },
+                  {
+                    "color": "red",
+                    "value": 5
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 22
+          },
+          "id": 15,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.50, sum(rate(router_request_duration_seconds_bucket{backend=\"gpu\"}[5m])) by (le))",
+              "legendFormat": "GPU p50",
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.95, sum(rate(router_request_duration_seconds_bucket{backend=\"gpu\"}[5m])) by (le))",
+              "legendFormat": "GPU p95",
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.99, sum(rate(router_request_duration_seconds_bucket{backend=\"gpu\"}[5m])) by (le))",
+              "legendFormat": "GPU p99",
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.50, sum(rate(router_request_duration_seconds_bucket{backend=\"cpu\"}[5m])) by (le))",
+              "legendFormat": "CPU p50",
+              "refId": "D"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.95, sum(rate(router_request_duration_seconds_bucket{backend=\"cpu\"}[5m])) by (le))",
+              "legendFormat": "CPU p95",
+              "refId": "E"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.99, sum(rate(router_request_duration_seconds_bucket{backend=\"cpu\"}[5m])) by (le))",
+              "legendFormat": "CPU p99",
+              "refId": "F"
+            }
+          ],
+          "title": "Request Latency (End-to-End via Router)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
@@ -865,7 +1010,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 22
+            "y": 30
           },
           "id": 9,
           "options": {
@@ -966,7 +1111,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 22
+            "y": 30
           },
           "id": 10,
           "options": {
@@ -1036,7 +1181,7 @@ data:
             "h": 6,
             "w": 6,
             "x": 0,
-            "y": 30
+            "y": 38
           },
           "id": 11,
           "options": {
@@ -1095,7 +1240,7 @@ data:
             "h": 6,
             "w": 6,
             "x": 6,
-            "y": 30
+            "y": 38
           },
           "id": 12,
           "options": {
@@ -1154,7 +1299,7 @@ data:
             "h": 6,
             "w": 6,
             "x": 12,
-            "y": 30
+            "y": 38
           },
           "id": 13,
           "options": {
@@ -1178,7 +1323,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(inference_duration_seconds_count{job=~\"counselgpt-gpu|counselgpt-cpu\"}[24h]))",
+              "expr": "sum(increase(router_requests_total[24h]))",
               "refId": "A"
             }
           ],
@@ -1213,7 +1358,7 @@ data:
             "h": 6,
             "w": 6,
             "x": 18,
-            "y": 30
+            "y": 38
           },
           "id": 14,
           "options": {
