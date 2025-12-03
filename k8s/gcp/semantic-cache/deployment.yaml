@@ -34,7 +34,7 @@ spec:
             echo "[INIT] Downloading all-MiniLM-L6-v2 model..."
             curl -LsSf https://hf.co/cli/install.sh | bash
             huggingface-cli download sentence-transformers/all-MiniLM-L6-v2 \
-              --local-dir /app/model/all-MiniLM-L6-v2 \
+              --local-dir /models/semantic/all-MiniLM-L6-v2 \
               --local-dir-use-symlinks False
 
             echo "[INIT] all-MiniLM-L6-v2 model downloaded."
@@ -93,7 +93,7 @@ spec:
       
       # Embedding Service (Sidecar - generates semantic embeddings)
       - name: embeddings
-        image: REPLACE_EMBEDDING_IMAGE  # Will be replaced by Cloud Build
+        image: us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/semantic-embeddings:c2aae8f  # Will be replaced by Cloud Build
         imagePullPolicy: IfNotPresent
         ports:
         - name: http

@@ -8,10 +8,14 @@ RUN pip install --no-cache-dir \
     uvicorn[standard] \
     sentence-transformers \
     numpy \
-    pydantic
+    pydantic \
+    "huggingface_hub[cli]" \
+    hf_transfer
 
 # Copy embedding service
 COPY embedding_service.py .
+
+ENV HF_HUB_ENABLE_HF_TRANSFER=1
 
 # Download model at build time (cache in image)
 # RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
