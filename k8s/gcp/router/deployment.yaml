@@ -20,7 +20,7 @@ metadata:
   labels:
     app: counselgpt-router
 spec:
-  replicas: 2  # High availability
+  replicas: 1  # Start with 1, let HPA scale up as needed
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -167,7 +167,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: counselgpt-router
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 5
   metrics:
   - type: Resource

@@ -11,7 +11,7 @@ spec:
     kind: Deployment
     name: counselgpt-api-cpu
 
-  minReplicas: 2     # Always keep at least 2 CPU pods
+  minReplicas: 1     # Start with 1 pod, scale up as needed
   maxReplicas: 5     # Scale up to 5 CPU pods under load
 
   metrics:

@@ -7,7 +7,7 @@ metadata:
     tier: cpu
 
 spec:
-  replicas: 2  # Multiple CPU pods (cheaper, handle lighter loads)
+  replicas: 1  # Start with 1, let HPA scale up as needed
   strategy:
     type: RollingUpdate
     rollingUpdate:

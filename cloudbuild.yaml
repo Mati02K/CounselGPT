@@ -189,8 +189,8 @@ steps:
         # Update image references
         sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:gpu-${SHORT_SHA}|g" k8s/gcp/backend-gpu/deployment-gpu.yaml
         sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:cpu-${SHORT_SHA}|g" k8s/gcp/backend-cpu/deployment-cpu.yaml
+        sed -i "s|REPLACE_ROUTER_IMAGE|${_ROUTER_IMAGE}:${SHORT_SHA}|g" k8s/gcp/router/deployment.yaml
         sed -i "s|REPLACE_EMBEDDING_IMAGE|${_EMBEDDING_IMAGE}:${SHORT_SHA}|g" k8s/gcp/semantic-cache/deployment.yaml
-        sed -i "s|REPLACE_ROUTER_IMAGE|${_ROUTER_IMAGE}:${SHORT_SHA}|g" k8s/gcp/semantic-cache/deployment.yaml
         
         # Apply infrastructure (PVC for models)
         echo "📦 Applying infrastructure..."
