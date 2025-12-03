@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 from typing import List, Optional
 
@@ -25,7 +26,7 @@ class BaseLlamaModel:
         lora_paths: Optional[List[str]] = None,
         lora_scaling: Optional[List[float]] = None,
         use_mmap: bool = True,
-        n_batch: int = 512,  # Batch size for prompt processing
+        n_batch: Optional[int] = None,  # Batch size for prompt processing
         use_mlock: bool = False,  # Don't lock memory (let OS manage)
     ):
         self.name = name
@@ -36,7 +37,8 @@ class BaseLlamaModel:
         self.lora_paths = lora_paths
         self.lora_scaling = lora_scaling
         self.use_mmap = use_mmap
-        self.n_batch = n_batch
+        # Allow n_batch to be configured via env var for CPU optimization
+        self.n_batch = n_batch or int(os.getenv("LLM_N_BATCH", "512"))
         self.use_mlock = use_mlock
 
         self._inference_lock = threading.Lock()
@@ -44,7 +46,7 @@ class BaseLlamaModel:
         logger.info(
             f"[{self.name}] Loading model from {self.model_path} "
             f"(ctx={self.n_ctx}, gpu_layers={self.n_gpu_layers}, "
-            f"threads={self.n_threads}, lora={self.lora_paths})"
+            f"threads={self.n_threads}, batch={self.n_batch}, lora={self.lora_paths})"
         )
 
         try:
@@ -59,7 +61,7 @@ class BaseLlamaModel:
                 lora_paths=self.lora_paths,
                 lora_scaling=self.lora_scaling,
                 verbose=False,
-                # L4 GPU optimizations
+                # Optimizations
                 rope_freq_base=0.0,  # Auto-detect
                 rope_freq_scale=0.0,  # Auto-detect
             )

@@ -33,8 +33,8 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_MODELS: '[{"id":"qwen2.5-7b-legal","name":"Qwen2.5-7B Legal (LoRA)"},{"id":"qwen2.5-7b-base","name":"Qwen2.5-7B Base"}]'
-          VITE_DEFAULT_MODEL: qwen2.5-7b-legal
+          VITE_MODELS: '[{"id":"qwen","name":"Qwen2.5-7B Legal (LoRA)"},{"id":"llama","name":"Llama-2-7B"}]'
+          VITE_DEFAULT_MODEL: qwen
         run: npm run build
 
       - name: Upload artifact

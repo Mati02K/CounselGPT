@@ -634,6 +634,47 @@
   border-top: 1px solid #2f2f2f;
 }
 
+/* Context Usage Indicator */
+.context-indicator {
+  max-width: 900px;
+  margin: 0 auto 12px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.context-bar-container {
+  height: 4px;
+  background-color: #2a2a2a;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.context-bar {
+  height: 100%;
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+.context-text {
+  font-size: 11px;
+  color: #8e8e8e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.context-warning {
+  color: #ef4444;
+  font-weight: 600;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 .input-wrapper {
   max-width: 900px;
   margin: 0 auto;

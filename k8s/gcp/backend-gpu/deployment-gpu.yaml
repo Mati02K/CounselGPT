@@ -1,22 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: counselgpt-api
+  name: counselgpt-api-gpu
   labels:
     app: counselgpt-api
+    tier: gpu
 
 spec:
-  replicas: 1
+  replicas: 1  # Single GPU pod (expensive)
   strategy:
-    type: Recreate  # Delete old pod before creating new one (good for single replica with GPU)
+    type: Recreate
   selector:
     matchLabels:
       app: counselgpt-api
+      tier: gpu
 
   template:
     metadata:
       labels:
         app: counselgpt-api
+        tier: gpu
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
 
     spec:
       # Run ONLY on GPU nodes
@@ -29,7 +36,7 @@ spec:
         effect: "NoSchedule"
 
       # -----------------------------
-      # InitContainer = Download models from GCS (only if missing)
+      # InitContainer = Download models from GCS
       # -----------------------------
       initContainers:
       - name: download-models
@@ -78,7 +85,7 @@ spec:
           mountPath: /models
 
       # -----------------------------
-      # Main Inference Container
+      # Main Inference Container (GPU)
       # -----------------------------
       containers:
       - name: counselgpt-api
@@ -89,12 +96,13 @@ spec:
           limits:
             cpu: "4"
             memory: "8Gi"
-            ephemeral-storage: "30Gi"   # GGUF models are large
+            ephemeral-storage: "30Gi"
             nvidia.com/gpu: "1"
           requests:
             cpu: "2"
             memory: "4Gi"
             ephemeral-storage: "20Gi"
+            nvidia.com/gpu: "1"
 
         env:
         # Qwen Model Paths (LoRA always ON)
@@ -105,14 +113,14 @@ spec:
           value: "/models/qwen/legal_lora_adapter_only_25k.gguf"
 
         - name: QWEN_GPU_LAYERS
-          value: "999"
+          value: "-1"
 
         # LLaMA Model Path
         - name: LLAMA_MODEL_PATH
           value: "/models/llama/llama-2-7b-chat.Q4_K_M.gguf"
 
         - name: LLAMA_GPU_LAYERS
-          value: "35"
+          value: "-1"
 
         # CPU inference fallback
         - name: LLM_N_THREADS
@@ -126,14 +134,46 @@ spec:
         - name: http
           containerPort: 8000
 
+        # Health checks
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30  # Allow up to 5 minutes for models to load
+          successThreshold: 1
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+
         volumeMounts:
         - name: model-storage
           mountPath: /models
 
       # -----------------------------
-      # Volumes - Persistent storage for models
+      # Volumes
       # -----------------------------
       volumes:
       - name: model-storage
         persistentVolumeClaim:
-          claimName: counselgpt-models
+          claimName: counselgpt
+

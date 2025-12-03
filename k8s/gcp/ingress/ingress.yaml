@@ -7,11 +7,20 @@ metadata:
     kubernetes.io/ingress.global-static-ip-name: "counselgpt-ip"
     networking.gke.io/managed-certificates: "counselgpt-ssl-cert"
     kubernetes.io/ingress.allow-http: "true"
+    # Increase backend timeout for slow CPU inference
+    cloud.google.com/backend-config: '{"default": "backend-timeout-config"}'
 spec:
   rules:
-  - host: 136.110.236.198.nip.io 
+  - host: 34.111.194.27.nip.io 
     http:
       paths:
+      - path: /grafana
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3000
       - path: /
         pathType: Prefix
         backend:

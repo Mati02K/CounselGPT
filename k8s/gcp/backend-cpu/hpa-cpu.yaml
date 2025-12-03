@@ -1,0 +1,45 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: counselgpt-api-cpu-hpa
+  labels:
+    app: counselgpt-api
+    tier: cpu
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: counselgpt-api-cpu
+
+  minReplicas: 2     # Always keep at least 2 CPU pods
+  maxReplicas: 5     # Scale up to 5 CPU pods under load
+
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60   # Scale when CPU > 60%
+  
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70   # Scale when memory > 70%
+
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60    # Wait 60s before scaling up
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 60               # Add max 2 pods per minute
+    scaleDown:
+      stabilizationWindowSeconds: 300   # Wait 5min before scaling down
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 120              # Remove max 1 pod per 2 minutes
+

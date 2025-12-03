@@ -1,0 +1,186 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: counselgpt-api-cpu
+  labels:
+    app: counselgpt-api
+    tier: cpu
+
+spec:
+  replicas: 2  # Multiple CPU pods (cheaper, handle lighter loads)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: counselgpt-api
+      tier: cpu
+
+  template:
+    metadata:
+      labels:
+        app: counselgpt-api
+        tier: cpu
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+
+    spec:
+      # Allow scheduling on any node (including GPU nodes)
+      # CPU pods will simply not use the GPU
+
+      # -----------------------------
+      # InitContainer = Download models from GCS
+      # -----------------------------
+      initContainers:
+      - name: download-models
+        image: google/cloud-sdk:slim
+        command:
+        - sh
+        - -c
+        - |
+          echo "[INIT] Checking for existing models..."
+          mkdir -p /models/llama
+          mkdir -p /models/qwen
+
+          # Check and download LLaMA model
+          if [ ! -f /models/llama/llama-2-7b-chat.Q4_K_M.gguf ]; then
+            echo "[INIT] Downloading LLaMA model..."
+            gsutil cp gs://counselgpt-models/llama-2-7b-chat.Q4_K_M.gguf /models/llama/
+            echo "[INIT] LLaMA model downloaded."
+          else
+            echo "[INIT] LLaMA model already exists, skipping download."
+          fi
+
+          # Check and download Qwen base model
+          if [ ! -f /models/qwen/Qwen2.5-7B-Instruct-Q8_0.gguf ]; then
+            echo "[INIT] Downloading Qwen base model..."
+            gsutil cp gs://counselgpt-models/Qwen2.5-7B-Instruct-Q8_0.gguf /models/qwen/
+            echo "[INIT] Qwen base model downloaded."
+          else
+            echo "[INIT] Qwen base model already exists, skipping download."
+          fi
+
+          # Check and download Qwen LoRA adapter
+          if [ ! -f /models/qwen/legal_lora_adapter_only_25k.gguf ]; then
+            echo "[INIT] Downloading Qwen LoRA adapter..."
+            gsutil cp gs://counselgpt-models/legal_lora_adapter_only_25k.gguf /models/qwen/
+            echo "[INIT] Qwen LoRA adapter downloaded."
+          else
+            echo "[INIT] Qwen LoRA adapter already exists, skipping download."
+          fi
+
+          echo "[INIT] All models ready!"
+          ls -lh /models/qwen/
+          ls -lh /models/llama/
+
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+
+      # -----------------------------
+      # Main Inference Container (CPU-only)
+      # -----------------------------
+      containers:
+      - name: counselgpt-api
+        image: REPLACE_IMAGE
+        imagePullPolicy: IfNotPresent
+
+        resources:
+          limits:
+            cpu: "8"      # Increased for faster CPU inference
+            memory: "12Gi"
+            ephemeral-storage: "30Gi"
+          requests:
+            cpu: "2"      # Increased from 1 to 2 for better performance
+            memory: "6Gi"
+            ephemeral-storage: "20Gi"
+
+        env:
+        # Force CPU-only mode (prevent CUDA library loading)
+        - name: CUDA_VISIBLE_DEVICES
+          value: ""
+        - name: LLAMA_CPP_LIB
+          value: "/usr/local/lib/python3.10/dist-packages/llama_cpp/lib/libllama.so"
+        
+        # Qwen Model Paths (LoRA always ON)
+        - name: QWEN_MODEL_PATH
+          value: "/models/qwen/Qwen2.5-7B-Instruct-Q8_0.gguf"
+
+        - name: QWEN_LORA_PATH
+          value: "/models/qwen/legal_lora_adapter_only_25k.gguf"
+
+        - name: QWEN_GPU_LAYERS
+          value: "0"  # CPU-only: no GPU layers
+        
+        - name: QWEN_N_CTX
+          value: "2048"  # Context window size
+
+        # LLaMA Model Path
+        - name: LLAMA_MODEL_PATH
+          value: "/models/llama/llama-2-7b-chat.Q4_K_M.gguf"
+
+        - name: LLAMA_GPU_LAYERS
+          value: "0"  # CPU-only: no GPU layers
+
+        # CPU inference optimizations - CRITICAL FOR SPEED
+        - name: LLM_N_THREADS
+          value: "8"  # Increased from 4 to 8 for faster inference
+        
+        - name: LLM_N_BATCH
+          value: "512"  # Batch size for prompt processing (faster prompt eval)
+
+        # Redis
+        - name: REDIS_URL
+          value: "redis://counselgpt-redis:6379"
+
+        ports:
+        - name: http
+          containerPort: 8000
+
+        # Health checks (longer timeouts for CPU inference)
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 40  # Allow up to 10 minutes for CPU model loading
+          successThreshold: 1
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+
+      # -----------------------------
+      # Volumes
+      # -----------------------------
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: counselgpt
+

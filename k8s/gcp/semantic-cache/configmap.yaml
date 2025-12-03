@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-cache-config
+  labels:
+    app: semantic-cache
+data:
+  redis.conf: |
+    # Network
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    
+    # Memory Management (optimized for semantic caching)
+    maxmemory 2gb
+    maxmemory-policy allkeys-lru  # Evict least recently used keys
+    
+    # Persistence (RDB snapshots)
+    save 900 1      # Save if 1 key changed in 15 minutes
+    save 300 10     # Save if 10 keys changed in 5 minutes
+    save 60 10000   # Save if 10000 keys changed in 1 minute
+    
+    # RDB file
+    dbfilename dump.rdb
+    dir /data
+    
+    # AOF (Append Only File) - disabled for performance
+    appendonly no
+    
+    # Performance
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+    
+    # Logging
+    loglevel notice
+    
+    # Lazy freeing (better performance)
+    lazyfree-lazy-eviction yes
+    lazyfree-lazy-expire yes
+    lazyfree-lazy-server-del yes
+    
+    # Threading (Redis 6+)
+    io-threads 4
+    io-threads-do-reads yes
+

@@ -34,7 +34,7 @@ class QwenModel(BaseLlamaModel):
 
         if gpu:
             # Load all layers to GPU for maximum speed
-            gpu_layers = n_gpu_layers or int(os.getenv("QWEN_GPU_LAYERS", "999"))
+            gpu_layers = n_gpu_layers or int(os.getenv("QWEN_GPU_LAYERS", "-1"))
         else:
             gpu_layers = 0
 

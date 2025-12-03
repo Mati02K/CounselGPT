@@ -27,7 +27,7 @@ class LlamaModel(BaseLlamaModel):
         threads = n_threads or int(os.getenv("LLM_N_THREADS", "8"))
 
         if gpu:
-            gpu_layers = n_gpu_layers or int(os.getenv("LLAMA_GPU_LAYERS", "35"))
+            gpu_layers = n_gpu_layers or int(os.getenv("LLAMA_GPU_LAYERS", "-1"))
         else:
             gpu_layers = 0
 
