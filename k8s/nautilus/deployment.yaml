@@ -3,8 +3,10 @@ kind: Deployment
 metadata:
   name: counselgpt-api-mthiruma
   namespace: cse239fall2025
+
 spec:
   replicas: 2
+
   selector:
     matchLabels:
       app: counselgpt-api-mthiruma
@@ -13,6 +15,7 @@ spec:
     metadata:
       labels:
         app: counselgpt-api-mthiruma
+
     spec:
 
       tolerations:
@@ -20,9 +23,32 @@ spec:
         operator: "Exists"
         effect: "NoSchedule"
 
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+
+              # 1. Force L40 GPU
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                - NVIDIA-L40
+
+              # 2. CUDA version: require CUDA 12.4+
+              - key: nvidia.com/cuda.runtime.major
+                operator: In
+                values:
+                - "12"
+              - key: nvidia.com/cuda.runtime.minor
+                operator: Gt
+                values:
+                - "3"
+
       containers:
       - name: counselgpt-api
-        image: mathesh0208/counselgptapi:v10
+        image: mathesh0208/counselgptapi:v11
+
         ports:
         - containerPort: 8000
 
@@ -43,19 +69,19 @@ spec:
           value: "/models/qwen/legal_lora_adapter_only_25k.gguf"
         - name: QWEN_GPU_LAYERS
           value: "-1"
-
         - name: LLAMA_MODEL_PATH
           value: "/models/llama/llama-2-7b-chat.Q4_K_M.gguf"
         - name: LLAMA_GPU_LAYERS
           value: "-1"
-
         - name: LLM_N_THREADS
           value: "8"
-
         - name: REDIS_URL
           value: "redis://counselgpt-redis-mthiruma:6379"
 
-        # Health checks
+        volumeMounts:
+        - name: model-volume
+          mountPath: /models
+
         startupProbe:
           httpGet:
             path: /health
@@ -63,8 +89,7 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
-          failureThreshold: 30  # Allow up to 5 minutes for models to load (30 * 10s)
-          successThreshold: 1
+          failureThreshold: 30
 
         livenessProbe:
           httpGet:
@@ -74,7 +99,6 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 3
-          successThreshold: 1
 
         readinessProbe:
           httpGet:
@@ -84,11 +108,6 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-          successThreshold: 1
-
-        volumeMounts:
-        - name: model-volume
-          mountPath: /models
 
       volumes:
       - name: model-volume
