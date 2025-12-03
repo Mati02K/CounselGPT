@@ -9,15 +9,30 @@ substitutions:
 
 steps:
   # ========================================
-  # PARALLEL BUILD PHASE
+  # 0. CACHE WARMUP PHASE
+  # ========================================
+  # Pull latest images to use as cache for faster builds
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'pull-cache'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull ${_IMAGE_PATH}:gpu-latest || true
+        docker pull ${_IMAGE_PATH}:cpu-latest || true
+        docker pull ${_ROUTER_IMAGE}:latest || true
+        docker pull ${_EMBEDDING_IMAGE}:latest || true
+    waitFor: ['-']
+
+  # ========================================
+  # 1. PARALLEL BUILD PHASE
   # ========================================
   
   # 1a. Build GPU image (CUDA-enabled)
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-gpu'
-    waitFor: ['-']  # Start immediately (parallel)
+    waitFor: ['pull-cache']  # Wait for cache to be available
     args:
-    
       - 'build'
       - '-f'
       - 'deployment/Dockerfile'
@@ -25,12 +40,14 @@ steps:
       - '${_IMAGE_PATH}:gpu-${SHORT_SHA}'
       - '-t'
       - '${_IMAGE_PATH}:gpu-latest'
+      - '--cache-from'
+      - '${_IMAGE_PATH}:gpu-latest'
       - 'deployment'
 
   # 1b. Build CPU image (CPU-only)
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-cpu'
-    waitFor: ['-']  # Start immediately (parallel)
+    waitFor: ['pull-cache']
     args:
       - 'build'
       - '-f'
@@ -39,12 +56,14 @@ steps:
       - '${_IMAGE_PATH}:cpu-${SHORT_SHA}'
       - '-t'
       - '${_IMAGE_PATH}:cpu-latest'
+      - '--cache-from'
+      - '${_IMAGE_PATH}:cpu-latest'
       - 'deployment'
 
   # 1c. Build Router image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-router'
-    waitFor: ['-']  # Start immediately (parallel)
+    waitFor: ['pull-cache']
     args:
       - 'build'
       - '-f'
@@ -53,12 +72,14 @@ steps:
       - '${_ROUTER_IMAGE}:${SHORT_SHA}'
       - '-t'
       - '${_ROUTER_IMAGE}:latest'
+      - '--cache-from'
+      - '${_ROUTER_IMAGE}:latest'
       - 'deployment'
 
   # 1d. Build Embeddings image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-embeddings'
-    waitFor: ['-']  # Start immediately (parallel)
+    waitFor: ['pull-cache']
     args:
       - 'build'
       - '-f'
@@ -67,10 +88,12 @@ steps:
       - '${_EMBEDDING_IMAGE}:${SHORT_SHA}'
       - '-t'
       - '${_EMBEDDING_IMAGE}:latest'
+      - '--cache-from'
+      - '${_EMBEDDING_IMAGE}:latest'
       - 'deployment'
 
   # ========================================
-  # PUSH PHASE (after builds complete)
+  # 2. PUSH PHASE (after builds complete)
   # ========================================
   
   # 2a. Push GPU image
@@ -138,10 +161,10 @@ steps:
       - '${_EMBEDDING_IMAGE}:latest'
 
   # ========================================
-  # DEPLOY PHASE (after all images pushed)
+  # 3. DEPLOY PHASE (after all images pushed)
   # ========================================
   
-  # 3. Set kube credentials
+  # 3a. Set kube credentials
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'get-credentials'
     waitFor: ['push-gpu', 'push-gpu-latest', 'push-cpu', 'push-cpu-latest', 'push-router', 'push-router-latest', 'push-embeddings-latest', 'push-embeddings']
@@ -153,7 +176,7 @@ steps:
       - '--zone'
       - 'us-west1-a'
 
-  # 4. Deploy to Kubernetes
+  # 3b. Deploy to Kubernetes
   - name: "gcr.io/cloud-builders/kubectl"
     id: 'deploy'
     waitFor: ['get-credentials']
@@ -196,13 +219,7 @@ steps:
         echo "🌐 Applying ingress..."
         kubectl apply -f k8s/gcp/ingress/
         
-        # Restart deployments to pick up new images
-        echo "♻️  Restarting deployments..."
-        kubectl rollout restart deployment/counselgpt-api-gpu
-        kubectl rollout restart deployment/counselgpt-api-cpu
-        kubectl rollout restart deployment/counselgpt-router
-        
-        # Wait for rollouts
+        # Wait for rollouts (Removed redundant restarts)
         echo "⏳ Waiting for rollouts to complete..."
         kubectl rollout status deployment/counselgpt-api-gpu --timeout=5m
         kubectl rollout status deployment/counselgpt-api-cpu --timeout=5m
@@ -214,9 +231,6 @@ steps:
         kubectl get pods -l app=counselgpt-api
         kubectl get pods -l app=counselgpt-router
         kubectl get svc counselgpt-api
-        echo ""
-        echo "🎯 Endpoints:"
-        kubectl get ingress counselgpt-ingress
 
 # Register all images
 images:
