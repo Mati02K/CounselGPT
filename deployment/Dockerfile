@@ -2,38 +2,47 @@ FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies (no build tools needed - using pre-built wheels!)
+# 1. Install system dependencies
+# We need python3 and git/curl (for uv/pip operations if needed, though uv is copied)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
+    python3-venv \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 WORKDIR /app
 
+# 2. Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# 3. Create venv
+ENV VIRTUAL_ENV=/opt/venv
+RUN uv venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 # --------------------------------------
 # Install Python dependencies
 # --------------------------------------
 COPY requirements.txt .
 
-# Install llama-cpp-python from pre-built CUDA wheel (MUCH faster!)
+# Install llama-cpp-python from pre-built CUDA wheel
 # Using CUDA 12.4 pre-built wheels from abetlen's repository
-RUN pip install --upgrade pip && \
-    pip install llama-cpp-python \
-        --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124 && \
-    pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --no-cache \
+    llama-cpp-python \
+    --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
+
+RUN uv pip install --no-cache -r requirements.txt
 
 # --------------------------------------
 # Copy application source
 # --------------------------------------
-COPY app.py cache.py metrics.py modelclass.py ./
+COPY app.py cache.py metrics.py modelclass.py prompt.py ./
 
 # Copy the llm module (your model loaders)
 COPY llm ./llm/
-
-# Copy your prompt file
-COPY prompt.py .
 
 # --------------------------------------
 # Model directory will be mounted externally
@@ -47,8 +56,6 @@ EXPOSE 8000
 
 # --------------------------------------
 # Start API with 1 worker (GPU doesn't support multiple workers safely)
-# CUDA contexts don't fork well, causing memory conflicts
-# For better throughput, scale horizontally with more pods instead
 # --------------------------------------
 CMD ["gunicorn", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \

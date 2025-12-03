@@ -31,7 +31,7 @@ spec:
           mkdir -p /models/semantic
 
           # Check and download all-MiniLM-L6-v2 model
-            if [ ! -f /models/semantic/all-MiniLM-L6-v2 ]; then
+            if [ ! -d /models/semantic/all-MiniLM-L6-v2 ]; then
               echo "[INIT] Downloading all-MiniLM-L6-v2 model..."
               
               # Install unzip
