@@ -70,17 +70,6 @@ REDIS_URL = "redis://counselgpt-redis:6379"
 - **GET /health**: Health check
 - **GET /**: Service info
 
-### Redis Commander (Web UI)
-
-```bash
-# Deploy UI (optional)
-kubectl apply -f redis-commander.yaml
-
-# Access
-kubectl port-forward svc/redis-commander 8081:8081
-# Open: http://localhost:8081
-```
-
 ### Redis CLI
 
 ```bash

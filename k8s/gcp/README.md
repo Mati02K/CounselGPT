@@ -12,7 +12,6 @@ k8s/gcp/
 │   ├── pvc.yaml                # 10GB storage
 │   ├── deployment.yaml         # Redis Stack + SentenceTransformer
 │   ├── service.yaml            # Ports 6379 (Redis), 8000 (Embeddings)
-│   └── redis-commander.yaml    # Optional UI
 │
 ├── backend-gpu/             # GPU backend (1 pod, CUDA)
 │   ├── deployment-gpu.yaml
