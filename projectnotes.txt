@@ -60,6 +60,10 @@ gcloud container clusters resize counselgpt-cluster \
   --zone=us-west1-a
 
 
+k6 run loadtest.js -e API_URL=$API_URL_NAUTILUS > results/loadtest.txt
+k6 run soaktest.js -e API_URL=$API_URL_NAUTILUS > results/soaktest.txt
+k6 run soaktest.js -e API_URL=$API_URL_NAUTILUS > results/soaktest.txt
+k6 run stresstest.js -e API_URL=$API_URL_NAUTILUS > results/stresstest.txt
 
 
 GPU's we have at Nautilus :-
