@@ -60,6 +60,7 @@ class InferRequest(BaseModel):
     model_name: str = Field("qwen", description="Model to use: 'qwen' (Qwen2.5-7B with LoRA) or 'llama' (Llama-2-7B)")
     use_gpu: bool = Field(True, description="Use GPU acceleration (recommended)")
     use_cache: bool = Field(True, description="Use Redis cache for faster repeated queries")
+    semantic_threshold: Optional[float] = Field(None, ge=0.0, le=1.0, description="Optional: Override semantic similarity threshold (0.0-1.0)")
 
 
 class InferResponse(BaseModel):
@@ -129,6 +130,7 @@ def infer(req: InferRequest):
         f"use_gpu={req.use_gpu}, "
         f"max_tokens={req.max_tokens}, "
         f"use_cache={req.use_cache}, "
+        f"threshold={req.semantic_threshold}, "
         f"messages={messages_count}, "
         f"est_tokens={estimated_tokens}"
     )
@@ -137,7 +139,7 @@ def infer(req: InferRequest):
     # Cache Check
     # -----------------------------
     if req.use_cache:
-        cached_response = cache.get(full_prompt, req.max_tokens)
+        cached_response = cache.get(full_prompt, req.max_tokens, threshold=req.semantic_threshold)
         if cached_response:
             CACHE_HITS.inc()
             logger.info(f"Cache hit for prompt (length={len(full_prompt)})")

@@ -25,7 +25,18 @@ class ResponseCache:
         self.redis_url = redis_url
         self.embedding_url = embedding_url
         self.retry_delay = retry_delay
-        self.similarity_threshold = similarity_threshold
+        
+        # Load threshold from env or use default
+        env_threshold = os.getenv("SEMANTIC_CACHE_THRESHOLD")
+        if env_threshold:
+            try:
+                self.similarity_threshold = float(env_threshold)
+                logger.info(f"Loaded semantic threshold from env: {self.similarity_threshold}")
+            except ValueError:
+                logger.warning(f"Invalid SEMANTIC_CACHE_THRESHOLD '{env_threshold}', using default {similarity_threshold}")
+                self.similarity_threshold = similarity_threshold
+        else:
+            self.similarity_threshold = similarity_threshold
         
         # Flags
         self.use_semantic = use_semantic
@@ -109,9 +120,12 @@ class ResponseCache:
             logger.error(f"Embedding fetch failed: {e}")
         return None
 
-    def _search_similar(self, embedding: List[float], max_tokens: int) -> Optional[tuple]:
+    def _search_similar(self, embedding: List[float], max_tokens: int, threshold: Optional[float] = None) -> Optional[tuple]:
         if not self.is_connected or not self.redis_client:
             return None
+        
+        # Use provided threshold or default
+        min_score = threshold if threshold is not None else self.similarity_threshold
         
         try:
             # Note: SCAN is slow for large DBs. 
@@ -139,7 +153,7 @@ class ResponseCache:
                 except (json.JSONDecodeError, TypeError):
                     continue
 
-            if best_score >= self.similarity_threshold:
+            if best_score >= min_score:
                 return (best_key, best_response, best_score)
         except Exception as e:
             logger.error(f"Semantic search error: {e}")
@@ -156,7 +170,7 @@ class ResponseCache:
         except Exception:
             return 0.0
 
-    def get(self, prompt: str, max_tokens: int) -> Optional[str]:
+    def get(self, prompt: str, max_tokens: int, threshold: Optional[float] = None) -> Optional[str]:
         """
         Non-blocking Get. Returns None immediately if Redis is down.
         """
@@ -185,7 +199,7 @@ class ResponseCache:
             if self.use_semantic and self.embedding_available:
                 embedding = self._get_embedding(prompt)
                 if embedding:
-                    result = self._search_similar(embedding, max_tokens)
+                    result = self._search_similar(embedding, max_tokens, threshold)
                     if result:
                         logger.info(f"Cache HIT (semantic) score={result[2]:.2f}")
                         return result[1]
@@ -232,7 +246,8 @@ class ResponseCache:
         if not self.is_connected or not self.redis_client:
             return {
                 "status": "degraded", 
-                "detail": "Redis unavailable - Caching disabled"
+                "detail": "Redis unavailable - Caching disabled",
+                "threshold": self.similarity_threshold
             }
         
         try:
@@ -241,10 +256,33 @@ class ResponseCache:
                 "status": "healthy",
                 "keys": self.redis_client.dbsize(),
                 "memory": info.get("used_memory_human"),
-                "semantic_active": self.embedding_available
+                "semantic_active": self.embedding_available,
+                "threshold": self.similarity_threshold
             }
         except Exception:
-            return {"status": "degraded", "detail": "Connection Error"}
+            return {"status": "degraded", "detail": "Connection Error", "threshold": self.similarity_threshold}
+
+    def clear(self) -> int:
+        """Clear all cache keys."""
+        if not self.is_connected or not self.redis_client:
+            return 0
+        try:
+            keys = self.redis_client.keys("llama:cache:*")
+            if keys:
+                return self.redis_client.delete(*keys)
+            return 0
+        except Exception as e:
+            logger.error(f"Cache clear error: {e}")
+            return 0
+
+    def update_threshold(self, new_threshold: float):
+        """Update similarity threshold dynamically."""
+        if 0.0 <= new_threshold <= 1.0:
+            old = self.similarity_threshold
+            self.similarity_threshold = new_threshold
+            logger.info(f"Updated similarity threshold: {old} -> {new_threshold}")
+            return True
+        return False
 
     def close(self):
         """Cleanup thread on shutdown"""
