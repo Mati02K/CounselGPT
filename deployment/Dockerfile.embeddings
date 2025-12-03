@@ -1,26 +1,53 @@
-FROM python:3.11-slim
+# -----------------------------------------------------------------------------
+# STAGE 1: Builder (Temporary container to download deps and model)
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim as builder
 
 WORKDIR /app
 
-# Install dependencies
+# 1. Install git (needed for some pip packages) & cleanup immediately
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# 2. Create a virtual environment (keeps dependencies isolated)
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# 3. CRITICAL: Install CPU-only PyTorch first! 
+# This saves ~3GB by NOT downloading NVIDIA CUDA kernels.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# 4. Install the rest of the dependencies
 RUN pip install --no-cache-dir \
     fastapi \
     uvicorn[standard] \
     sentence-transformers \
     numpy \
-    pydantic \
-    "huggingface_hub[cli]" \
-    hf_transfer
+    pydantic 
 
-# Copy embedding service
+# -----------------------------------------------------------------------------
+# STAGE 2: Runtime (The final tiny image)
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 1. Create a non-root user for security (optional but best practice)
+RUN useradd -m -u 1000 appuser
+
+# 2. Copy the virtual environment from the builder
+COPY --from=builder /opt/venv /opt/venv
+
+# 3. Copy your application code
 COPY embedding_service.py .
 
-ENV HF_HUB_ENABLE_HF_TRANSFER=1
+# 4. Set Environment Variables
+ENV PATH="/opt/venv/bin:$PATH"
+# Tell your python script where to find the model (prevents re-download)
+ENV MODEL_PATH="/app/model" 
 
-# Download model at build time (cache in image)
-# RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+# 5. Switch to non-root user
+USER appuser
 
 EXPOSE 8000
 
 CMD ["uvicorn", "embedding_service:app", "--host", "0.0.0.0", "--port", "8000"]
-

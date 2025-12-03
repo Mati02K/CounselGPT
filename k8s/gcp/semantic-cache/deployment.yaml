@@ -26,19 +26,31 @@ spec:
         - sh
         - -c
         - |
+          set -e
           echo "[INIT] Checking for existing models..."
           mkdir -p /models/semantic
 
           # Check and download all-MiniLM-L6-v2 model
-          if [ ! -f /models/semantic/all-MiniLM-L6-v2 ]; then
-            echo "[INIT] Downloading all-MiniLM-L6-v2 model..."
-            curl -LsSf https://hf.co/cli/install.sh | bash
-            huggingface-cli download sentence-transformers/all-MiniLM-L6-v2 \
-              --local-dir /models/semantic/all-MiniLM-L6-v2 \
-              --local-dir-use-symlinks False
+            if [ ! -f /models/semantic/all-MiniLM-L6-v2 ]; then
+              echo "[INIT] Downloading all-MiniLM-L6-v2 model..."
+              
+              # Install unzip
+              apt-get update && apt-get install -y unzip
 
-            echo "[INIT] all-MiniLM-L6-v2 model downloaded."
-          else
+              # Download and unzip
+              gsutil cp gs://counselgpt-models/all-MiniLM-L6-v2.zip /models/semantic/all-MiniLM-L6-v2.zip
+              unzip -o /models/semantic/all-MiniLM-L6-v2.zip -d /models/semantic/
+              
+              # Move files from tmp location to correct path if needed
+              if [ -d "/models/semantic/tmp/all-MiniLM-L6-v2" ]; then
+                mv /models/semantic/tmp/all-MiniLM-L6-v2 /models/semantic/
+                rm -rf /models/semantic/tmp
+              fi
+              
+              rm /models/semantic/all-MiniLM-L6-v2.zip
+
+              echo "[INIT] all-MiniLM-L6-v2 model downloaded and extracted."
+            else
             echo "[INIT] all-MiniLM-L6-v2 model already exists, skipping download."
           fi
 
@@ -93,7 +105,7 @@ spec:
       
       # Embedding Service (Sidecar - generates semantic embeddings)
       - name: embeddings
-        image: us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/semantic-embeddings:c2aae8f  # Will be replaced by Cloud Build
+        image: REPLACE_EMBEDDING_IMAGE  # Will be replaced by Cloud Build
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -155,4 +167,3 @@ spec:
       - name: model-storage
         persistentVolumeClaim:
           claimName: counselgpt
-

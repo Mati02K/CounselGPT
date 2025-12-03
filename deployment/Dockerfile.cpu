@@ -21,7 +21,7 @@ RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" \
     pip install --no-cache-dir --force-reinstall llama-cpp-python
 
 # Copy application code
-COPY *.py ./
+COPY app.py cache.py metrics.py modelclass.py prompt.py ./
 COPY llm/ ./llm/
 
 # Create models directory
