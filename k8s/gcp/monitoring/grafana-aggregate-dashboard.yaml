@@ -82,7 +82,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(http_requests_total{job=\"counselgpt-gpu\"}[1h]))",
+              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1h]))",
               "refId": "A"
             }
           ],
@@ -141,7 +141,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(http_requests_total{job=\"counselgpt-cpu\"}[1h]))",
+              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-cpu\"}[1h]))",
               "refId": "A"
             }
           ],
@@ -208,7 +208,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(http_requests_total{job=\"counselgpt-gpu\"}[1h])) / (sum(increase(http_requests_total{job=\"counselgpt-gpu\"}[1h])) + sum(increase(http_requests_total{job=\"counselgpt-cpu\"}[1h]))) * 100",
+              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1h])) / (sum(increase(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1h])) + sum(increase(inference_duration_seconds_count{job=\"counselgpt-cpu\"}[1h]))) * 100",
               "refId": "A"
             }
           ],
@@ -397,7 +397,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(http_requests_total{job=\"counselgpt-gpu\"}[1m]))",
+              "expr": "sum(rate(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1m]))",
               "legendFormat": "GPU",
               "refId": "A"
             },
@@ -406,7 +406,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(http_requests_total{job=\"counselgpt-cpu\"}[1m]))",
+              "expr": "sum(rate(inference_duration_seconds_count{job=\"counselgpt-cpu\"}[1m]))",
               "legendFormat": "CPU",
               "refId": "B"
             }
@@ -507,7 +507,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(http_requests_total{job=\"counselgpt-gpu\"}[1h]))",
+              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1h]))",
               "legendFormat": "GPU",
               "refId": "A"
             },
@@ -516,7 +516,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(http_requests_total{job=\"counselgpt-cpu\"}[1h]))",
+              "expr": "sum(increase(inference_duration_seconds_count{job=\"counselgpt-cpu\"}[1h]))",
               "legendFormat": "CPU",
               "refId": "B"
             }
@@ -991,7 +991,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(kube_deployment_status_replicas_available{deployment=~\"counselgpt-api-gpu\"})",
+              "expr": "count(up{job=\"counselgpt-gpu\"})",
               "legendFormat": "GPU Pods",
               "refId": "A"
             },
@@ -1000,7 +1000,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(kube_deployment_status_replicas_available{deployment=~\"counselgpt-api-cpu\"})",
+              "expr": "count(up{job=\"counselgpt-cpu\"})",
               "legendFormat": "CPU Pods",
               "refId": "B"
             }
@@ -1178,7 +1178,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(http_requests_total[24h]))",
+              "expr": "sum(increase(inference_duration_seconds_count{job=~\"counselgpt-gpu|counselgpt-cpu\"}[24h]))",
               "refId": "A"
             }
           ],
