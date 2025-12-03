@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: router
-        image: us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/counselgpt-router:latest
+        image: REPLACE_ROUTER_IMAGE
         imagePullPolicy: IfNotPresent
         
         ports:
