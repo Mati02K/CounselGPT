@@ -47,7 +47,7 @@ spec:
 
       containers:
       - name: counselgpt-api
-        image: mathesh0208/counselgptapi:v11
+        image: mathesh0208/counselgptapi:v12
 
         ports:
         - containerPort: 8000
@@ -77,6 +77,12 @@ spec:
           value: "8"
         - name: REDIS_URL
           value: "redis://counselgpt-redis-mthiruma:6379"
+        - name: EMBEDDING_URL
+          value: "http://counselgpt-redis-mthiruma:8000"
+        - name: USE_SEMANTIC_CACHE
+          value: "true"
+        - name: SIMILARITY_THRESHOLD
+          value: "0.95"
 
         volumeMounts:
         - name: model-volume

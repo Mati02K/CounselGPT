@@ -66,7 +66,7 @@ k6 run soaktest.js -e API_URL=$API_URL_NAUTILUS > results/soaktest.txt
 k6 run stresstest.js -e API_URL=$API_URL_NAUTILUS > results/stresstest.txt
 
 Check Nautilus resources :- https://nrp.ai/viz/resources/
-Could be Prometheus URL In Nautilus Grafana :- http://prometheus.cse239fall2025.svc.cluster.local:9090
+Could be Prometheus URL In Nautilus Grafana :- http://counselgpt-prometheus.cse239fall2025.svc.cluster.local:9090
 
 GPU's we have at Nautilus :-
 ChatGPT said:

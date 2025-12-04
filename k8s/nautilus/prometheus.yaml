@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: prometheus
+  name: counselgpt-prometheus
   namespace: cse239fall2025
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: prometheus
+      app: counselgpt-prometheus
   template:
     metadata:
       labels:
-        app: prometheus
+        app: counselgpt-prometheus
     spec:
       containers:
       - name: prometheus
@@ -40,3 +40,17 @@ spec:
           name: prometheus-config
       - name: data-volume
         emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: counselgpt-prometheus
+  namespace: cse239fall2025
+spec:
+  type: ClusterIP
+  selector:
+    app: counselgpt-prometheus
+  ports:
+  - name: http
+    port: 9090
+    targetPort: 9090
