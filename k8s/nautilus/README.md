@@ -41,7 +41,7 @@ Upload:
 
 ```
 s3cmd put \
- deployment/models/llama-2-7b-chat.Q4_K_M.gguf \
+ models/llama-2-7b-chat.Q4_K_M.gguf \
  s3://counselgpt-models/llama-2-7b-chat.Q4_K_M.gguf \
  --force
 ```

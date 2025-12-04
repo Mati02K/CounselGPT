@@ -257,5 +257,5 @@ kubectl exec -it deployment/semantic-cache -- redis-cli --stat
 
 ---
 
-For semantic caching implementation details, see: `deployment/SEMANTIC_CACHING.md`
+For semantic caching implementation details, see: `backend/semantic-cache/SEMANTIC_CACHE.md`
 
