@@ -3,27 +3,18 @@ import { sleep } from 'k6';
 import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 export const options = {
-  vus: 10,                // 10 concurrent users
-  duration: '2m',         // run for 2 minutes
-  timeout: '120s',        // allow long inference
+  vus: 10,
+  duration: '2m',
+  thresholds: {
+    http_req_duration: ['p(95) < 4000'],   // fail if > 8s
+    http_req_failed: ['rate < 0.05'],      // fail if > 5% failures
+  },
 };
 
-// const API_URL = "https://counselgpt-mathesh.nrp-nautilus.io/infer";
-// const API_URL = "http://localhost:8000/infer";
-// const API_URL = "https://136.110.236.198.nip.io/infer";
+const prompts = JSON.parse(open('./prompts/testclear.json'));
+// const prompts = JSON.parse(open('./prompts/smallprompts.json'));
+
 const API_URL = __ENV.API_URL;
-
-
-// Five prompts to avoid Redis cache 
-// TODO make more prompts (like 100)
-const prompts = [
-  "Explain fraud in simple terms.",
-  "What is vessel in Law?.",
-  "I am a immigrant what are the rules I should know before travelling outside US?",
-  "What are the things I need to verify in my legal agreement.",
-  "Give a short overview of taffic laws in Nashville."
-];
-
 
 export default function () {
   const prompt = randomItem(prompts);
@@ -38,8 +29,11 @@ export default function () {
     headers: { 'Content-Type': 'application/json' },
   });
 
-  sleep(0.5);   // small pause
+  sleep(0.3);
 }
 
 
-//  run using k6 run loadtest.js
+// This is how it will work (for me to intepret)
+// VU1: send — wait 0.3 — send — wait
+// VU2: send — wait 0.3 — send — wait
+// VU3: send — wait 0.3 — send — wait
