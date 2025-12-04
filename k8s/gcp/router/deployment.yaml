@@ -20,7 +20,7 @@ metadata:
   labels:
     app: counselgpt-router
 spec:
-  replicas: 2  # High availability
+  replicas: 1  # Start with 1, let HPA scale up as needed
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -40,13 +40,11 @@ spec:
     spec:
       containers:
       - name: router
-        image: us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/counselgpt-router:latest
+        image: REPLACE_ROUTER_IMAGE
         imagePullPolicy: IfNotPresent
         
         ports:
         - name: http
-          containerPort: 8080
-        - name: metrics
           containerPort: 8080
         
         env:
@@ -169,7 +167,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: counselgpt-router
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 5
   metrics:
   - type: Resource

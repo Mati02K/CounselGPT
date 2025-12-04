@@ -9,68 +9,91 @@ substitutions:
 
 steps:
   # ========================================
-  # PARALLEL BUILD PHASE
+  # 0. CACHE WARMUP PHASE
+  # ========================================
+  # Pull latest images to use as cache for faster builds
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'pull-cache'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull ${_IMAGE_PATH}:gpu-latest || true
+        docker pull ${_IMAGE_PATH}:cpu-latest || true
+        docker pull ${_ROUTER_IMAGE}:latest || true
+        docker pull ${_EMBEDDING_IMAGE}:latest || true
+    waitFor: ['-']
+
+  # ========================================
+  # 1. PARALLEL BUILD PHASE
   # ========================================
   
   # 1a. Build GPU image (CUDA-enabled)
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-gpu'
-    waitFor: ['-']  # Start immediately (parallel)
+    waitFor: ['pull-cache']  # Wait for cache to be available
     args:
-    
       - 'build'
       - '-f'
-      - 'deployment/Dockerfile'
+      - 'backend/api/Dockerfile.gpu'
       - '-t'
       - '${_IMAGE_PATH}:gpu-${SHORT_SHA}'
       - '-t'
       - '${_IMAGE_PATH}:gpu-latest'
-      - 'deployment'
+      - '--cache-from'
+      - '${_IMAGE_PATH}:gpu-latest'
+      - 'backend/api'
 
   # 1b. Build CPU image (CPU-only)
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-cpu'
-    waitFor: ['-']  # Start immediately (parallel)
+    waitFor: ['pull-cache']
     args:
       - 'build'
       - '-f'
-      - 'deployment/Dockerfile.cpu'
+      - 'backend/api/Dockerfile.cpu'
       - '-t'
       - '${_IMAGE_PATH}:cpu-${SHORT_SHA}'
       - '-t'
       - '${_IMAGE_PATH}:cpu-latest'
-      - 'deployment'
+      - '--cache-from'
+      - '${_IMAGE_PATH}:cpu-latest'
+      - 'backend/api'
 
   # 1c. Build Router image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-router'
-    waitFor: ['-']  # Start immediately (parallel)
+    waitFor: ['pull-cache']
     args:
       - 'build'
       - '-f'
-      - 'deployment/Dockerfile.router'
+      - 'backend/router/Dockerfile.router'
       - '-t'
       - '${_ROUTER_IMAGE}:${SHORT_SHA}'
       - '-t'
       - '${_ROUTER_IMAGE}:latest'
-      - 'deployment'
+      - '--cache-from'
+      - '${_ROUTER_IMAGE}:latest'
+      - 'backend/router'
 
   # 1d. Build Embeddings image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-embeddings'
-    waitFor: ['-']  # Start immediately (parallel)
+    waitFor: ['pull-cache']
     args:
       - 'build'
       - '-f'
-      - 'deployment/Dockerfile.embeddings'
+      - 'backend/semantic-cache/Dockerfile.semantic'
       - '-t'
       - '${_EMBEDDING_IMAGE}:${SHORT_SHA}'
       - '-t'
       - '${_EMBEDDING_IMAGE}:latest'
-      - 'deployment'
+      - '--cache-from'
+      - '${_EMBEDDING_IMAGE}:latest'
+      - 'backend/semantic-cache'
 
   # ========================================
-  # PUSH PHASE (after builds complete)
+  # 2. PUSH PHASE (after builds complete)
   # ========================================
   
   # 2a. Push GPU image
@@ -138,10 +161,10 @@ steps:
       - '${_EMBEDDING_IMAGE}:latest'
 
   # ========================================
-  # DEPLOY PHASE (after all images pushed)
+  # 3. DEPLOY PHASE (after all images pushed)
   # ========================================
   
-  # 3. Set kube credentials
+  # 3a. Set kube credentials
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'get-credentials'
     waitFor: ['push-gpu', 'push-gpu-latest', 'push-cpu', 'push-cpu-latest', 'push-router', 'push-router-latest', 'push-embeddings-latest', 'push-embeddings']
@@ -153,7 +176,7 @@ steps:
       - '--zone'
       - 'us-west1-a'
 
-  # 4. Deploy to Kubernetes
+  # 3b. Deploy to Kubernetes
   - name: "gcr.io/cloud-builders/kubectl"
     id: 'deploy'
     waitFor: ['get-credentials']
@@ -164,8 +187,9 @@ steps:
         echo "🚀 Deploying CounselGPT multi-tier stack..."
         
         # Update image references
-        sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:gpu-${SHORT_SHA}|g" k8s/gcp/backend-gpu/deployment-gpu.yaml
-        sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:cpu-${SHORT_SHA}|g" k8s/gcp/backend-cpu/deployment-cpu.yaml
+        sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:gpu-${SHORT_SHA}|g" k8s/gcp/api-gpu/deployment-gpu.yaml
+        sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:cpu-${SHORT_SHA}|g" k8s/gcp/api-cpu/deployment-cpu.yaml
+        sed -i "s|REPLACE_ROUTER_IMAGE|${_ROUTER_IMAGE}:${SHORT_SHA}|g" k8s/gcp/router/deployment.yaml
         sed -i "s|REPLACE_EMBEDDING_IMAGE|${_EMBEDDING_IMAGE}:${SHORT_SHA}|g" k8s/gcp/semantic-cache/deployment.yaml
         
         # Apply infrastructure (PVC for models)
@@ -178,11 +202,11 @@ steps:
         
         # Apply GPU backend (deployment + service)
         echo "🎮 Deploying GPU backend..."
-        kubectl apply -f k8s/gcp/backend-gpu/
+        kubectl apply -f k8s/gcp/api-gpu/
         
         # Apply CPU backend (deployment + service + HPA)
         echo "💻 Deploying CPU backend..."
-        kubectl apply -f k8s/gcp/backend-cpu/
+        kubectl apply -f k8s/gcp/api-cpu/
         
         # Apply router (creates main counselgpt-api service)
         echo "🧭 Deploying router..."
@@ -196,13 +220,7 @@ steps:
         echo "🌐 Applying ingress..."
         kubectl apply -f k8s/gcp/ingress/
         
-        # Restart deployments to pick up new images
-        echo "♻️  Restarting deployments..."
-        kubectl rollout restart deployment/counselgpt-api-gpu
-        kubectl rollout restart deployment/counselgpt-api-cpu
-        kubectl rollout restart deployment/counselgpt-router
-        
-        # Wait for rollouts
+        # Wait for rollouts (Removed redundant restarts)
         echo "⏳ Waiting for rollouts to complete..."
         kubectl rollout status deployment/counselgpt-api-gpu --timeout=5m
         kubectl rollout status deployment/counselgpt-api-cpu --timeout=5m
@@ -214,9 +232,6 @@ steps:
         kubectl get pods -l app=counselgpt-api
         kubectl get pods -l app=counselgpt-router
         kubectl get svc counselgpt-api
-        echo ""
-        echo "🎯 Endpoints:"
-        kubectl get ingress counselgpt-ingress
 
 # Register all images
 images:

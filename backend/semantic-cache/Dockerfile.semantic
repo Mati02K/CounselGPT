@@ -1,0 +1,58 @@
+# -----------------------------------------------------------------------------
+# STAGE 1: Builder (Temporary container to download deps and model)
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+# 1. Install git and build tools (needed for some packages)
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# 2. Install uv for much faster package installation
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# 3. Create a virtual environment
+ENV VIRTUAL_ENV=/opt/venv
+RUN uv venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# 4. Install dependencies
+# Using uv is significantly faster than pip
+# We install CPU-only pytorch explicitly to save ~3GB
+RUN uv pip install --no-cache \
+    torch \
+    --index-url https://download.pytorch.org/whl/cpu
+
+RUN uv pip install --no-cache \
+    fastapi \
+    uvicorn[standard] \
+    sentence-transformers \
+    numpy \
+    pydantic
+
+# -----------------------------------------------------------------------------
+# STAGE 2: Runtime (The final tiny image)
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 1. Create a non-root user
+RUN useradd -m -u 1000 appuser
+
+# 2. Copy the virtual environment from the builder
+COPY --from=builder /opt/venv /opt/venv
+
+# 3. Copy application code
+COPY semantic_cache.py ./
+
+# 4. Set Environment Variables
+ENV PATH="/opt/venv/bin:$PATH"
+ENV MODEL_PATH="/app/model"
+
+# 5. Switch to non-root user
+USER appuser
+
+EXPOSE 8000
+
+CMD ["uvicorn", "semantic_cache:app", "--host", "0.0.0.0", "--port", "8000"]

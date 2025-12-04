@@ -207,7 +207,7 @@ class BackendHealthMonitor:
 
 app = FastAPI(
     title="CounselGPT Router",
-    description="Adaptive router with GPU priority and CPU fallback",
+    description="Adaptive router with GPU priority, CPU fallback, and user preference support",
     version="1.0.0"
 )
 
@@ -365,15 +365,39 @@ async def infer(request: Request):
     """
     Route inference request with adaptive logic:
     
-    Priority 1: GPU (if available and healthy)
-    Priority 2: CPU (fallback)
+    Priority 1: Respect user's use_gpu preference
+    Priority 2: GPU (if available and healthy)
+    Priority 3: CPU (fallback)
     
     Routing decision based on:
+    - User's use_gpu flag in request body
     - GPU queue capacity
     - Circuit breaker state
     - Backend health
     """
     
+    # Parse request body to check use_gpu preference
+    try:
+        body_bytes = await request.body()
+        body = body_bytes.decode('utf-8')
+        import json
+        payload = json.loads(body) if body else {}
+        use_gpu_requested = payload.get("use_gpu", True)  # Default to True for backward compatibility
+    except Exception as e:
+        logger.warning(f"Failed to parse request body: {e}, defaulting to GPU priority")
+        use_gpu_requested = True
+    
+    # If user explicitly requests CPU, route to CPU directly
+    if not use_gpu_requested:
+        logger.info("User requested CPU inference, routing to CPU")
+        fallback_count.labels(reason="user_preference").inc()
+        try:
+            return await forward_request("cpu", CPU_URL, request)
+        except HTTPException as e:
+            cpu_circuit_breaker.record_failure()
+            raise
+    
+    # User wants GPU - continue with existing GPU-priority logic
     # Update capacity gauge
     gpu_capacity.set(gpu_semaphore._value)
     gpu_queue_size.set(GPU_MAX_INFLIGHT - gpu_semaphore._value)
@@ -504,9 +528,14 @@ async def root():
     return {
         "service": "CounselGPT Router",
         "version": "1.0.0",
-        "description": "Adaptive router with GPU priority and CPU fallback",
+        "description": "Adaptive router with GPU priority, CPU fallback, and user preference support",
+        "routing_logic": {
+            "1": "Respects use_gpu flag in request body",
+            "2": "GPU priority (if use_gpu=true and available)",
+            "3": "CPU fallback (automatic or if use_gpu=false)"
+        },
         "endpoints": {
-            "/infer": "POST - Run inference",
+            "/infer": "POST - Run inference (supports use_gpu flag)",
             "/health": "GET - Health check",
             "/metrics": "GET - Prometheus metrics",
         },

@@ -3,31 +3,38 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# 1. Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# 2. Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# 3. Create venv
+ENV VIRTUAL_ENV=/opt/venv
+RUN uv venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# 4. Install Python dependencies
 COPY requirements.txt .
+RUN uv pip install --no-cache -r requirements.txt
 
-# Install Python packages (CPU-only llama-cpp-python)
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Install llama-cpp-python with CPU-only support
+# 5. Install llama-cpp-python with CPU-only support
+# We force reinstall to ensure it picks up the CMAKE_ARGS for OpenBLAS
 RUN CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" \
-    pip install --no-cache-dir --force-reinstall llama-cpp-python
+    uv pip install --no-cache --force-reinstall llama-cpp-python
 
-# Copy application code
-COPY *.py ./
+# 6. Copy application code
+COPY app.py cache.py metrics.py modelclass.py prompt.py ./
 COPY llm/ ./llm/
 
-# Create models directory
+# 7. Create models directory
 RUN mkdir -p /models/qwen /models/llama
 
-# Non-root user
+# 8. Non-root user
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app /models
 USER appuser
@@ -43,4 +50,3 @@ CMD ["gunicorn", "app:app", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
      "--timeout", "120", \
      "--log-level", "info"]
-

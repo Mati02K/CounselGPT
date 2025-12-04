@@ -35,6 +35,12 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [healthStatus, setHealthStatus] = useState({ status: 'checking', message: 'Checking server...' });
   const [contextWindow, setContextWindow] = useState(2048); // Default context window
+  
+  // Settings
+  const [useGPU, setUseGPU] = useState(true);
+  const [useCache, setUseCache] = useState(true);
+  const [semanticThreshold, setSemanticThreshold] = useState(0.95);
+
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -150,8 +156,9 @@ function App() {
           messages: apiMessages,  // Send full conversation history
           max_tokens: 400,  // Balanced: fast but detailed (300 words)
           model_name: backendModelName,
-          use_gpu: true,
-          use_cache: true
+          use_gpu: useGPU,
+          use_cache: useCache,
+          semantic_threshold: semanticThreshold
         }),
       });
 
@@ -311,6 +318,44 @@ function App() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="settings-group">
+            <div className="setting-item">
+              <label className="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  checked={useGPU} 
+                  onChange={(e) => setUseGPU(e.target.checked)} 
+                />
+                Use GPU Acceleration
+              </label>
+            </div>
+            <div className="setting-item">
+              <label className="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  checked={useCache} 
+                  onChange={(e) => setUseCache(e.target.checked)} 
+                />
+                Use Semantic Cache
+              </label>
+            </div>
+            {useCache && (
+              <div className="setting-item">
+                <label className="slider-label">
+                  Threshold: {semanticThreshold.toFixed(2)}
+                  <input 
+                    type="range" 
+                    min="0.5" 
+                    max="1.0" 
+                    step="0.01" 
+                    value={semanticThreshold} 
+                    onChange={(e) => setSemanticThreshold(parseFloat(e.target.value))} 
+                  />
+                </label>
+              </div>
+            )}
           </div>
         </div>
       </div>

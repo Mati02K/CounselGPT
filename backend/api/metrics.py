@@ -30,6 +30,11 @@ def add_metrics_middleware(app):
     Attach Prometheus Instrumentator to FastAPI
     Exposes /metrics endpoint with http_requests_total and http_request_duration_seconds
     """
+    from logging import getLogger
+    logger = getLogger("metrics")
+    
+    logger.info("Initializing Prometheus metrics instrumentation...")
+    
     instrumentator = Instrumentator(
         should_group_status_codes=False,  # Keep exact status codes (200, 404, 500, etc.)
         should_ignore_untemplated=False,
@@ -61,6 +66,16 @@ def add_metrics_middleware(app):
     # Add the custom metric
     instrumentator.add(http_requests_total())
     
-    # Instrument the app and expose /metrics endpoint
+    # Instrument the app (collects metrics)
     # This also automatically adds http_request_duration_seconds histogram
-    instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    instrumentator.instrument(app)
+    
+    # Manually expose /metrics endpoint to ensure it's registered correctly
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from starlette.responses import Response
+
+    @app.get("/metrics", include_in_schema=True)
+    def metrics_endpoint():
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    
+    logger.info("Prometheus metrics initialized and exposed at /metrics (manual route)")

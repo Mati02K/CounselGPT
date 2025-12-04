@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Semantic Embedding Service")
 
 # Load embedding model on startup
-MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+MODEL_NAME = os.getenv("EMBEDDING_MODEL", "/models/semantic/all-MiniLM-L6-v2")
 logger.info(f"Loading embedding model: {MODEL_NAME}")
 model = SentenceTransformer(MODEL_NAME)
 logger.info(f"Model loaded successfully. Embedding dimension: {model.get_sentence_embedding_dimension()}")

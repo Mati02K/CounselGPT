@@ -2,14 +2,22 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
-COPY requirements-router.txt .
-RUN pip install --no-cache-dir -r requirements-router.txt
+# 1. Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# Copy router code
+# 2. Create venv
+ENV VIRTUAL_ENV=/opt/venv
+RUN uv venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# 3. Install dependencies
+COPY requirements-router.txt .
+RUN uv pip install --no-cache -r requirements-router.txt
+
+# 4. Copy router code
 COPY router.py .
 
-# Non-root user
+# 5. Non-root user
 RUN useradd -m -u 1000 router && chown -R router:router /app
 USER router
 
@@ -19,4 +27,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Run router
 CMD ["uvicorn", "router:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "4"]
-

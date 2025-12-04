@@ -12,13 +12,12 @@ k8s/gcp/
 │   ├── pvc.yaml                # 10GB storage
 │   ├── deployment.yaml         # Redis Stack + SentenceTransformer
 │   ├── service.yaml            # Ports 6379 (Redis), 8000 (Embeddings)
-│   └── redis-commander.yaml    # Optional UI
 │
-├── backend-gpu/             # GPU backend (1 pod, CUDA)
+├── api-gpu/                 # GPU backend (1 pod, CUDA)
 │   ├── deployment-gpu.yaml
 │   └── service-gpu.yaml
 │
-├── backend-cpu/             # CPU backend (2-5 pods, HPA)
+├── api-cpu/                 # CPU backend (2-5 pods, HPA)
 │   ├── deployment-cpu.yaml
 │   ├── service-cpu.yaml
 │   └── hpa-cpu.yaml
@@ -65,8 +64,8 @@ git push
 # Or manually
 kubectl apply -f infrastructure/
 kubectl apply -f semantic-cache/
-kubectl apply -f backend-gpu/
-kubectl apply -f backend-cpu/
+kubectl apply -f api-gpu/
+kubectl apply -f api-cpu/
 kubectl apply -f router/
 kubectl apply -f monitoring/
 kubectl apply -f ingress/

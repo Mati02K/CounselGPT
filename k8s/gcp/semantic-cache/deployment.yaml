@@ -19,6 +19,48 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9121"
     spec:
+      initContainers:
+      - name: download-models
+        image: google/cloud-sdk:slim
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "[INIT] Checking for existing models..."
+          mkdir -p /models/semantic
+
+          # Check and download all-MiniLM-L6-v2 model
+            if [ ! -d /models/semantic/all-MiniLM-L6-v2 ]; then
+              echo "[INIT] Downloading all-MiniLM-L6-v2 model..."
+              
+              # Install unzip
+              apt-get update && apt-get install -y unzip
+
+              # Download and unzip
+              gsutil cp gs://counselgpt-models/all-MiniLM-L6-v2.zip /models/semantic/all-MiniLM-L6-v2.zip
+              unzip -o /models/semantic/all-MiniLM-L6-v2.zip -d /models/semantic/
+              
+              # Move files from tmp location to correct path if needed
+              if [ -d "/models/semantic/tmp/all-MiniLM-L6-v2" ]; then
+                mv /models/semantic/tmp/all-MiniLM-L6-v2 /models/semantic/
+                rm -rf /models/semantic/tmp
+              fi
+              
+              rm /models/semantic/all-MiniLM-L6-v2.zip
+
+              echo "[INIT] all-MiniLM-L6-v2 model downloaded and extracted."
+            else
+            echo "[INIT] all-MiniLM-L6-v2 model already exists, skipping download."
+          fi
+
+          echo "[INIT] All models ready!"
+          ls -lh /models/semantic/
+
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+
       containers:
       # Redis Stack (with RediSearch + Vector Similarity)
       - name: redis
@@ -71,7 +113,7 @@ spec:
         
         env:
         - name: EMBEDDING_MODEL
-          value: "all-MiniLM-L6-v2"  # Fast, 384-dim embeddings
+          value: "/models/semantic/all-MiniLM-L6-v2"  # Fast, 384-dim embeddings
         
         resources:
           requests:
@@ -94,6 +136,10 @@ spec:
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 5
+        
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
       
       # Redis Exporter (Prometheus metrics)
       - name: redis-exporter
@@ -118,4 +164,6 @@ spec:
       - name: redis-data
         persistentVolumeClaim:
           claimName: redis-cache-data
-
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: counselgpt
