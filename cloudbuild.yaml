@@ -35,14 +35,14 @@ steps:
     args:
       - 'build'
       - '-f'
-      - 'deployment/Dockerfile'
+      - 'backend/api/Dockerfile.gpu'
       - '-t'
       - '${_IMAGE_PATH}:gpu-${SHORT_SHA}'
       - '-t'
       - '${_IMAGE_PATH}:gpu-latest'
       - '--cache-from'
       - '${_IMAGE_PATH}:gpu-latest'
-      - 'deployment'
+      - 'backend/api'
 
   # 1b. Build CPU image (CPU-only)
   - name: 'gcr.io/cloud-builders/docker'
@@ -51,14 +51,14 @@ steps:
     args:
       - 'build'
       - '-f'
-      - 'deployment/Dockerfile.cpu'
+      - 'backend/api/Dockerfile.cpu'
       - '-t'
       - '${_IMAGE_PATH}:cpu-${SHORT_SHA}'
       - '-t'
       - '${_IMAGE_PATH}:cpu-latest'
       - '--cache-from'
       - '${_IMAGE_PATH}:cpu-latest'
-      - 'deployment'
+      - 'backend/api'
 
   # 1c. Build Router image
   - name: 'gcr.io/cloud-builders/docker'
@@ -67,14 +67,14 @@ steps:
     args:
       - 'build'
       - '-f'
-      - 'deployment/Dockerfile.router'
+      - 'backend/router/Dockerfile.router'
       - '-t'
       - '${_ROUTER_IMAGE}:${SHORT_SHA}'
       - '-t'
       - '${_ROUTER_IMAGE}:latest'
       - '--cache-from'
       - '${_ROUTER_IMAGE}:latest'
-      - 'deployment'
+      - 'backend/router'
 
   # 1d. Build Embeddings image
   - name: 'gcr.io/cloud-builders/docker'
@@ -83,14 +83,14 @@ steps:
     args:
       - 'build'
       - '-f'
-      - 'deployment/Dockerfile.embeddings'
+      - 'backend/semantic-cache/Dockerfile.semantic'
       - '-t'
       - '${_EMBEDDING_IMAGE}:${SHORT_SHA}'
       - '-t'
       - '${_EMBEDDING_IMAGE}:latest'
       - '--cache-from'
       - '${_EMBEDDING_IMAGE}:latest'
-      - 'deployment'
+      - 'backend/semantic-cache'
 
   # ========================================
   # 2. PUSH PHASE (after builds complete)
@@ -187,8 +187,8 @@ steps:
         echo "🚀 Deploying CounselGPT multi-tier stack..."
         
         # Update image references
-        sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:gpu-${SHORT_SHA}|g" k8s/gcp/backend-gpu/deployment-gpu.yaml
-        sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:cpu-${SHORT_SHA}|g" k8s/gcp/backend-cpu/deployment-cpu.yaml
+        sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:gpu-${SHORT_SHA}|g" k8s/gcp/api-gpu/deployment-gpu.yaml
+        sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:cpu-${SHORT_SHA}|g" k8s/gcp/api-cpu/deployment-cpu.yaml
         sed -i "s|REPLACE_ROUTER_IMAGE|${_ROUTER_IMAGE}:${SHORT_SHA}|g" k8s/gcp/router/deployment.yaml
         sed -i "s|REPLACE_EMBEDDING_IMAGE|${_EMBEDDING_IMAGE}:${SHORT_SHA}|g" k8s/gcp/semantic-cache/deployment.yaml
         
@@ -202,11 +202,11 @@ steps:
         
         # Apply GPU backend (deployment + service)
         echo "🎮 Deploying GPU backend..."
-        kubectl apply -f k8s/gcp/backend-gpu/
+        kubectl apply -f k8s/gcp/api-gpu/
         
         # Apply CPU backend (deployment + service + HPA)
         echo "💻 Deploying CPU backend..."
-        kubectl apply -f k8s/gcp/backend-cpu/
+        kubectl apply -f k8s/gcp/api-cpu/
         
         # Apply router (creates main counselgpt-api service)
         echo "🧭 Deploying router..."
