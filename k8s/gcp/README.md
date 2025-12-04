@@ -8,10 +8,15 @@ k8s/gcp/
 │   ├── model-pvc.yaml
 │   └── model-pvc-filestore.yaml
 │
-├── semantic-cache/          # Redis Stack + Embeddings Service
-│   ├── pvc.yaml                # 10GB storage
-│   ├── deployment.yaml         # Redis Stack + SentenceTransformer
-│   ├── service.yaml            # Ports 6379 (Redis), 8000 (Embeddings)
+├── redis/                   # Redis cache (separate pod)
+│   ├── pvc.yaml                # 10GB storage for Redis data
+│   ├── configmap.yaml          # Redis configuration
+│   ├── deployment.yaml         # Redis + Redis Exporter
+│   └── service.yaml            # Port 6379 (Redis), 9121 (metrics)
+│
+├── embeddings/              # Semantic embeddings service (separate pod)
+│   ├── deployment.yaml         # SentenceTransformer
+│   └── service.yaml            # Port 8000 (HTTP API)
 │
 ├── api-gpu/                 # GPU backend (1 pod, CUDA)
 │   ├── deployment-gpu.yaml
@@ -24,6 +29,7 @@ k8s/gcp/
 │
 ├── router/                  # Smart router (2-5 pods, HPA)
 │   └── deployment.yaml
+│   └── hpa-router.yaml
 │
 ├── monitoring/              # Prometheus + Grafana
 │   ├── prometheus-deployment.yaml
@@ -47,7 +53,8 @@ k8s/gcp/
 | Component | Purpose | Cost/mo |
 |-----------|---------|---------|
 | **Infrastructure** | Model storage (Filestore) | ~$200 |
-| **Semantic Cache** | Redis with embeddings | ~$6 |
+| **Redis** | Cache storage + Redis Exporter | ~$3 |
+| **Embeddings** | Semantic embedding generation | ~$3 |
 | **Backend GPU** | 1 pod, NVIDIA L4 | ~$360 |
 | **Backend CPU** | 2-5 pods, auto-scale | ~$100 |
 | **Router** | 2-5 pods, GPU-first routing | ~$20 |
@@ -61,14 +68,15 @@ k8s/gcp/
 # Using Cloud Build (recommended)
 git push
 
-# Or manually
-kubectl apply -f infrastructure/
-kubectl apply -f semantic-cache/
-kubectl apply -f api-gpu/
-kubectl apply -f api-cpu/
-kubectl apply -f router/
-kubectl apply -f monitoring/
-kubectl apply -f ingress/
+# Or manually (in order)
+kubectl apply -f infrastructure/      # PVCs for models
+kubectl apply -f embeddings/          # Embeddings service
+kubectl apply -f redis/               # Redis cache
+kubectl apply -f api-gpu/             # GPU backend
+kubectl apply -f api-cpu/             # CPU backend
+kubectl apply -f router/              # Router (main API)
+kubectl apply -f monitoring/          # Prometheus + Grafana
+kubectl apply -f ingress/             # External access
 ```
 
 ## Access Grafana

@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: redis-cache-data
   labels:
-    app: semantic-cache
+    app: redis
 spec:
   accessModes:
     - ReadWriteOnce
