@@ -5,7 +5,8 @@ from prometheus_fastapi_instrumentator import Instrumentator, metrics
 
 INFERENCE_TIME = Histogram(
     "inference_duration_seconds",
-    "Time spent generating model responses"
+    "Time spent generating model responses",
+    buckets=(1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180)  # Better buckets for LLM inference
 )
 
 TOKENS_GENERATED = Counter(
