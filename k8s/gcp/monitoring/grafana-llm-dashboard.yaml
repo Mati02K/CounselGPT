@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grafana-aggregate-dashboard
+  name: grafana-llm-dashboard
   labels:
     app: grafana
-    dashboard: aggregate
+    dashboard: llm
 data:
-  aggregate-metrics.json: |+
+  llm-metrics.json: |+
     {
       "annotations": {
         "list": [
@@ -82,11 +82,11 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(router_requests_total{backend=\"gpu\"}[5m]))",
+              "expr": "sum(tokens_generated_total)",
               "refId": "A"
             }
           ],
-          "title": "GPU Requests (Last 5m)",
+          "title": "Total Tokens Generated",
           "type": "stat"
         },
         {
@@ -104,7 +104,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "blue",
+                    "color": "green",
                     "value": null
                   }
                 ]
@@ -141,11 +141,11 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(router_requests_total{backend=\"cpu\"}[5m]))",
+              "expr": "sum(increase(tokens_generated_total[5m]))",
               "refId": "A"
             }
           ],
-          "title": "CPU Requests (Last 5m)",
+          "title": "Tokens Generated (5m)",
           "type": "stat"
         },
         {
@@ -165,18 +165,10 @@ data:
                   {
                     "color": "green",
                     "value": null
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 50
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
                   }
                 ]
               },
-              "unit": "percent"
+              "unit": "short"
             },
             "overrides": []
           },
@@ -208,11 +200,11 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "(sum(increase(router_requests_total{backend=\"gpu\"}[5m])) / (sum(increase(router_requests_total{backend=\"gpu\"}[5m])) + sum(increase(router_requests_total{backend=\"cpu\"}[5m]))) * 100) or vector(0)",
+              "expr": "sum(inference_duration_seconds_count)",
               "refId": "A"
             }
           ],
-          "title": "GPU Usage % (Last 5m)",
+          "title": "Total Inferences",
           "type": "stat"
         },
         {
@@ -235,15 +227,15 @@ data:
                   },
                   {
                     "color": "yellow",
-                    "value": 60
+                    "value": 5
                   },
                   {
                     "color": "red",
-                    "value": 80
+                    "value": 10
                   }
                 ]
               },
-              "unit": "percent"
+              "unit": "s"
             },
             "overrides": []
           },
@@ -275,11 +267,11 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "(sum(rate(cache_hits_total[5m])) / (sum(rate(cache_hits_total[5m])) + sum(rate(cache_misses_total[5m]))) * 100) or vector(0)",
+              "expr": "sum(inference_duration_seconds_sum) / sum(inference_duration_seconds_count)",
               "refId": "A"
             }
           ],
-          "title": "Cache Hit Rate",
+          "title": "Avg Inference Time",
           "type": "stat"
         },
         {
@@ -332,7 +324,7 @@ data:
                   }
                 ]
               },
-              "unit": "reqps"
+              "unit": "tps"
             },
             "overrides": [
               {
@@ -387,7 +379,7 @@ data:
             },
             "tooltip": {
               "mode": "multi",
-              "sort": "none"
+              "sort": "desc"
             }
           },
           "pluginVersion": "10.0.0",
@@ -397,7 +389,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(router_requests_total{backend=\"gpu\"}[1m]))",
+              "expr": "sum(rate(tokens_generated_total{job=\"counselgpt-gpu\"}[1m]))",
               "legendFormat": "GPU",
               "refId": "A"
             },
@@ -406,604 +398,13 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(router_requests_total{backend=\"cpu\"}[1m]))",
+              "expr": "sum(rate(tokens_generated_total{job=\"counselgpt-cpu\"}[1m]))",
               "legendFormat": "CPU",
               "refId": "B"
             }
           ],
-          "title": "Request Rate (GPU vs CPU)",
+          "title": "Token Generation Rate (tokens/sec)",
           "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                }
-              },
-              "mappings": [],
-              "unit": "short"
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "GPU"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "green",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "CPU"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "blue",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 6
-          },
-          "id": 6,
-          "options": {
-            "displayLabels": [
-              "percent"
-            ],
-            "legend": {
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "values": [
-                "value",
-                "percent"
-              ]
-            },
-            "pieType": "donut",
-            "reduceOptions": {
-              "values": false,
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": ""
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "sum(increase(router_requests_total{backend=\"gpu\"}[5m]))",
-              "legendFormat": "GPU",
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "sum(increase(router_requests_total{backend=\"cpu\"}[5m]))",
-              "legendFormat": "CPU",
-              "refId": "B"
-            }
-          ],
-          "title": "Request Distribution (Last 5m)",
-          "type": "piechart"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "Latency (seconds)",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                },
-                "lineInterpolation": "smooth",
-                "lineWidth": 2,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 2
-                  },
-                  {
-                    "color": "red",
-                    "value": 5
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 14
-          },
-          "id": 15,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "lastNotNull",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "histogram_quantile(0.50, sum(rate(router_request_duration_seconds_bucket{backend=\"gpu\"}[5m])) by (le))",
-              "legendFormat": "GPU p50",
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "histogram_quantile(0.95, sum(rate(router_request_duration_seconds_bucket{backend=\"gpu\"}[5m])) by (le))",
-              "legendFormat": "GPU p95",
-              "refId": "B"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "histogram_quantile(0.99, sum(rate(router_request_duration_seconds_bucket{backend=\"gpu\"}[5m])) by (le))",
-              "legendFormat": "GPU p99",
-              "refId": "C"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "histogram_quantile(0.50, sum(rate(router_request_duration_seconds_bucket{backend=\"cpu\"}[5m])) by (le))",
-              "legendFormat": "CPU p50",
-              "refId": "D"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "histogram_quantile(0.95, sum(rate(router_request_duration_seconds_bucket{backend=\"cpu\"}[5m])) by (le))",
-              "legendFormat": "CPU p95",
-              "refId": "E"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "histogram_quantile(0.99, sum(rate(router_request_duration_seconds_bucket{backend=\"cpu\"}[5m])) by (le))",
-              "legendFormat": "CPU p99",
-              "refId": "F"
-            }
-          ],
-          "title": "Request Latency (End-to-End via Router)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 20,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                },
-                "lineInterpolation": "smooth",
-                "lineWidth": 2,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 22
-          },
-          "id": 10,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "count(up{job=\"counselgpt-gpu\"})",
-              "legendFormat": "GPU Pods",
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "count(up{job=\"counselgpt-cpu\"})",
-              "legendFormat": "CPU Pods",
-              "refId": "B"
-            }
-          ],
-          "title": "Active Backend Pods",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 6,
-            "w": 6,
-            "x": 0,
-            "y": 30
-          },
-          "id": 11,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "values": false,
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": ""
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "sum(increase(inference_duration_seconds_sum{job=\"counselgpt-gpu\"}[24h]))",
-              "refId": "A"
-            }
-          ],
-          "title": "GPU Compute Hours (24h)",
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "blue",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 6,
-            "w": 6,
-            "x": 6,
-            "y": 30
-          },
-          "id": 12,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "values": false,
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": ""
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "sum(increase(inference_duration_seconds_sum{job=\"counselgpt-cpu\"}[24h]))",
-              "refId": "A"
-            }
-          ],
-          "title": "CPU Compute Hours (24h)",
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 6,
-            "w": 6,
-            "x": 12,
-            "y": 30
-          },
-          "id": 13,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "values": false,
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": ""
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "sum(increase(router_requests_total[24h]))",
-              "refId": "A"
-            }
-          ],
-          "title": "Total Requests (24h)",
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 6,
-            "w": 6,
-            "x": 18,
-            "y": 30
-          },
-          "id": 14,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "values": false,
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": ""
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "10.0.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "sum(increase(cache_hits_total[24h]))",
-              "refId": "A"
-            }
-          ],
-          "title": "Cache Hits (24h)",
-          "type": "stat"
         },
         {
           "datasource": {
@@ -1062,10 +463,142 @@ data:
           "gridPos": {
             "h": 8,
             "w": 12,
-            "x": 0,
-            "y": 36
+            "x": 12,
+            "y": 6
           },
-          "id": 16,
+          "id": 6,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "sum(rate(inference_duration_seconds_count{job=\"counselgpt-gpu\"}[1m]))",
+              "legendFormat": "GPU",
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "sum(rate(inference_duration_seconds_count{job=\"counselgpt-cpu\"}[1m]))",
+              "legendFormat": "CPU",
+              "refId": "B"
+            }
+          ],
+          "title": "Inference Request Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Latency (seconds)",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": ".*GPU.*"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": ".*CPU.*"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "blue",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 14
+          },
+          "id": 7,
           "options": {
             "legend": {
               "calcs": [
@@ -1089,8 +622,8 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(http_requests_total{job=\"counselgpt-gpu\"}[1m])) by (handler)",
-              "legendFormat": "GPU - {{handler}}",
+              "expr": "histogram_quantile(0.50, sum(rate(inference_duration_seconds_bucket{job=\"counselgpt-gpu\"}[5m])) by (le))",
+              "legendFormat": "GPU p50",
               "refId": "A"
             },
             {
@@ -1098,12 +631,48 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(http_requests_total{job=\"counselgpt-cpu\"}[1m])) by (handler)",
-              "legendFormat": "CPU - {{handler}}",
+              "expr": "histogram_quantile(0.95, sum(rate(inference_duration_seconds_bucket{job=\"counselgpt-gpu\"}[5m])) by (le))",
+              "legendFormat": "GPU p95",
               "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.99, sum(rate(inference_duration_seconds_bucket{job=\"counselgpt-gpu\"}[5m])) by (le))",
+              "legendFormat": "GPU p99",
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.50, sum(rate(inference_duration_seconds_bucket{job=\"counselgpt-cpu\"}[5m])) by (le))",
+              "legendFormat": "CPU p50",
+              "refId": "D"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.95, sum(rate(inference_duration_seconds_bucket{job=\"counselgpt-cpu\"}[5m])) by (le))",
+              "legendFormat": "CPU p95",
+              "refId": "E"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.99, sum(rate(inference_duration_seconds_bucket{job=\"counselgpt-cpu\"}[5m])) by (le))",
+              "legendFormat": "CPU p99",
+              "refId": "F"
             }
           ],
-          "title": "API Request Rate (by Endpoint)",
+          "title": "Inference Latency Distribution (GPU vs CPU)",
           "type": "timeseries"
         },
         {
@@ -1140,7 +709,7 @@ data:
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
-                  "mode": "none"
+                  "mode": "normal"
                 },
                 "thresholdsStyle": {
                   "mode": "off"
@@ -1153,14 +722,119 @@ data:
                   {
                     "color": "green",
                     "value": null
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Cache Hits"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Cache Misses"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "red",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 22
+          },
+          "id": 8,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "lastNotNull",
+                "max",
+                "sum"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "sum(rate(cache_hits_total[1m]))",
+              "legendFormat": "Cache Hits",
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "sum(rate(cache_misses_total[1m]))",
+              "legendFormat": "Cache Misses",
+              "refId": "B"
+            }
+          ],
+          "title": "Cache Performance (Hits vs Misses)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
                   },
                   {
                     "color": "yellow",
-                    "value": 0.01
+                    "value": 0.5
                   },
                   {
-                    "color": "red",
-                    "value": 0.05
+                    "color": "green",
+                    "value": 0.8
                   }
                 ]
               },
@@ -1172,24 +846,20 @@ data:
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 36
+            "y": 22
           },
-          "id": 17,
+          "id": 9,
           "options": {
-            "legend": {
+            "orientation": "auto",
+            "reduceOptions": {
+              "values": false,
               "calcs": [
-                "mean",
-                "lastNotNull",
-                "max"
+                "lastNotNull"
               ],
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true
+              "fields": ""
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "none"
-            }
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
           },
           "pluginVersion": "10.0.0",
           "targets": [
@@ -1198,22 +868,12 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(http_requests_total{job=\"counselgpt-gpu\",status=~\"5..\"}[1m])) / sum(rate(http_requests_total{job=\"counselgpt-gpu\"}[1m]))",
-              "legendFormat": "GPU Error Rate",
+              "expr": "(sum(rate(cache_hits_total[5m])) / (sum(rate(cache_hits_total[5m])) + sum(rate(cache_misses_total[5m])))) or vector(0)",
               "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "sum(rate(http_requests_total{job=\"counselgpt-cpu\",status=~\"5..\"}[1m])) / sum(rate(http_requests_total{job=\"counselgpt-cpu\"}[1m]))",
-              "legendFormat": "CPU Error Rate",
-              "refId": "B"
             }
           ],
-          "title": "API Error Rate (5xx)",
-          "type": "timeseries"
+          "title": "Cache Hit Rate",
+          "type": "gauge"
         },
         {
           "datasource": {
@@ -1223,37 +883,14 @@ data:
           "fieldConfig": {
             "defaults": {
               "color": {
-                "mode": "palette-classic"
+                "mode": "thresholds"
               },
               "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "Latency (seconds)",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
                 },
-                "lineInterpolation": "smooth",
-                "lineWidth": 2,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
+                "inspect": false
               },
               "mappings": [],
               "thresholds": {
@@ -1265,40 +902,93 @@ data:
                   },
                   {
                     "color": "yellow",
-                    "value": 2
+                    "value": 5
                   },
                   {
                     "color": "red",
-                    "value": 5
+                    "value": 10
                   }
                 ]
               },
-              "unit": "s"
+              "unit": "short"
             },
-            "overrides": []
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Avg Latency"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 2
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Tokens Generated"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Requests"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "auto"
+                    }
+                  }
+                ]
+              }
+            ]
           },
           "gridPos": {
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 44
+            "y": 30
           },
-          "id": 18,
+          "id": 10,
           "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "lastNotNull",
-                "max"
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
               ],
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true
+              "show": false
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "none"
-            }
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "Requests"
+              }
+            ]
           },
           "pluginVersion": "10.0.0",
           "targets": [
@@ -1307,8 +997,9 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"counselgpt-gpu\"}[5m])) by (le, handler))",
-              "legendFormat": "GPU p50 - {{handler}}",
+              "expr": "sum(inference_duration_seconds_count) by (job)",
+              "format": "table",
+              "instant": true,
               "refId": "A"
             },
             {
@@ -1316,8 +1007,9 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"counselgpt-gpu\"}[5m])) by (le, handler))",
-              "legendFormat": "GPU p95 - {{handler}}",
+              "expr": "sum(tokens_generated_total) by (job)",
+              "format": "table",
+              "instant": true,
               "refId": "B"
             },
             {
@@ -1325,27 +1017,49 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"counselgpt-cpu\"}[5m])) by (le, handler))",
-              "legendFormat": "CPU p50 - {{handler}}",
+              "expr": "sum(inference_duration_seconds_sum) by (job) / sum(inference_duration_seconds_count) by (job)",
+              "format": "table",
+              "instant": true,
               "refId": "C"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"counselgpt-cpu\"}[5m])) by (le, handler))",
-              "legendFormat": "CPU p95 - {{handler}}",
-              "refId": "D"
             }
           ],
-          "title": "API Latency by Endpoint (Direct)",
-          "type": "timeseries"
+          "title": "Inference Summary by Backend",
+          "transformations": [
+            {
+              "id": "seriesToColumns",
+              "options": {
+                "byField": "job"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "__name__": true,
+                  "__name__ 1": true,
+                  "__name__ 2": true,
+                  "__name__ 3": true
+                },
+                "indexByName": {},
+                "renameByName": {
+                  "Value #A": "Requests",
+                  "Value #B": "Tokens Generated",
+                  "Value #C": "Avg Latency",
+                  "job": "Backend"
+                }
+              }
+            }
+          ],
+          "type": "table"
         }
       ],
       "refresh": "5s",
       "schemaVersion": 38,
-      "tags": ["aggregate", "kpi", "overview"],
+      "tags": ["llm", "inference", "tokens", "model"],
       "templating": {
         "list": []
       },
@@ -1355,12 +1069,9 @@ data:
       },
       "timepicker": {},
       "timezone": "browser",
-      "title": "Aggregate Metrics - GPU vs CPU",
-      "uid": "aggregate-metrics-001",
+      "title": "LLM Inference Metrics",
+      "uid": "llm-metrics-001",
       "version": 1,
       "weekStart": ""
     }
 
-kind: ConfigMap
-metadata:
-  name: grafana-aggregate-dashboard

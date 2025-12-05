@@ -64,10 +64,14 @@ spec:
           mountPath: /etc/grafana/provisioning/datasources
         - name: dashboards-provisioning
           mountPath: /etc/grafana/provisioning/dashboards
-        - name: dashboards
-          mountPath: /var/lib/grafana/dashboards
         - name: aggregate-dashboard
           mountPath: /var/lib/grafana/dashboards/aggregate
+        - name: infrastructure-dashboard
+          mountPath: /var/lib/grafana/dashboards/infrastructure
+        - name: health-dashboard
+          mountPath: /var/lib/grafana/dashboards/health
+        - name: llm-dashboard
+          mountPath: /var/lib/grafana/dashboards/llm
         - name: storage
           mountPath: /var/lib/grafana
         
@@ -92,12 +96,18 @@ spec:
       - name: dashboards-provisioning
         configMap:
           name: grafana-dashboards-provisioning
-      - name: dashboards
-        configMap:
-          name: grafana-dashboards
       - name: aggregate-dashboard
         configMap:
           name: grafana-aggregate-dashboard
+      - name: infrastructure-dashboard
+        configMap:
+          name: grafana-infrastructure-dashboard
+      - name: health-dashboard
+        configMap:
+          name: grafana-health-dashboard
+      - name: llm-dashboard
+        configMap:
+          name: grafana-llm-dashboard
       - name: storage
         emptyDir: {}  # Use PVC for production
 ---
