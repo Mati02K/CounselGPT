@@ -64,13 +64,40 @@ k6 run loadtest.js -e API_URL=$API_URL_NAUTILUS > results/loadtest.txt
 k6 run soaktest.js -e API_URL=$API_URL_NAUTILUS > results/soaktest.txt
 k6 run soaktest.js -e API_URL=$API_URL_NAUTILUS > results/soaktest.txt
 k6 run stresstest.js -e API_URL=$API_URL_NAUTILUS > results/stresstest.txt
+k6 run endurance.js -e API_URL=$API_URL_NAUTILUS > results/endurance.txt
 
 Check Nautilus resources :- https://nrp.ai/viz/resources/
 Could be Prometheus URL In Nautilus Grafana :- http://counselgpt-prometheus.cse239fall2025.svc.cluster.local:9090
+
+How to check what GPU I have. Exec into it :-
+kubectl exec -it <POD_NAME> -n cse239fall2025 -- nvidia-smi
+
+watch HPA :-
+kubectl get hpa -n cse239fall2025 -w
+
+reason why GPU based scaling was avoided on Nautilus :-
+Nautilus does NOT provide Prometheus Adapter.
+You cannot install cluster-wide components in Nautilus.
+
+So this approach is not possible unless the admins install it (they won’t).
+
 
 GPU's we have at Nautilus :-
 ChatGPT said:
 
 L40 (48 GB, Ada Lovelace): Modern datacenter-class GPU with very strong tensor performance and large VRAM, excellent for high-throughput LLM inference.
 
-RTX 2080 Ti (11 GB, Turing): Older consumer GPU with limited VRAM and slower tensor cores, suitable for light inference but much weaker than L40.
+RTX 2080 Ti (11 GB, Turing): Older consumer GPU with limited VRAM and slower tensor cores, suitable for light inference but much weaker than L40
+
+
+You can include test assumptions (like how much model should handle)
+Compare against SOTA LLM's
+Create graph for all test
+Show improvement pre and post redis
+think about using GPU count for http_req_failed
+include tech debt
+compare price and performance
+talk about future vLLM
+think about cooldown in HPA.
+put all in table
+talk about GFlops and GPU's being Used.

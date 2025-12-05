@@ -3,16 +3,31 @@ import { sleep } from 'k6';
 import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 export const options = {
-  vus: 10,
+  vus: 20,
   duration: '2m',
   thresholds: {
     http_req_duration: ['p(95) < 4000'],   // fail if > 8s
     http_req_failed: ['rate < 0.05'],      // fail if > 5% failures
   },
+  ext: {
+    loadimpact: {
+      projectID: 123,
+      name: "k6 test",
+    },
+    output: {
+      "prometheusremote": {
+        "url": "http://counselgpt-prometheus.cse239fall2025.svc.cluster.local:9090/api/v1/write",
+        "basicAuth": {
+          "username": "admin",
+          "password": "admin"
+        }
+      }
+    }
+  },
 };
 
-const prompts = JSON.parse(open('./prompts/testclear.json'));
-// const prompts = JSON.parse(open('./prompts/smallprompts.json'));
+// const prompts = JSON.parse(open('./prompts/testclear.json'));
+const prompts = JSON.parse(open('./prompts/smallprompts.json'));
 
 const API_URL = __ENV.API_URL;
 

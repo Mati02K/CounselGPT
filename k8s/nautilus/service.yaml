@@ -3,6 +3,10 @@ kind: Service
 metadata:
   name: counselgpt-redis-mthiruma
   namespace: cse239fall2025
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9121"
+    prometheus.io/path: "/metrics"
 spec:
   selector:
     app: counselgpt-redis-mthiruma
@@ -10,9 +14,11 @@ spec:
   - name: redis
     port: 6379
     targetPort: 6379
+
   - name: embeddings
     port: 8000
     targetPort: 8000
-  - name: metrics
+
+  - name: metrics   # Redis Exporter
     port: 9121
     targetPort: 9121

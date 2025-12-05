@@ -5,7 +5,7 @@ metadata:
   namespace: cse239fall2025
 
 spec:
-  replicas: 2
+  replicas: 1   # HPA will scale it later
 
   selector:
     matchLabels:
@@ -25,29 +25,74 @@ spec:
 
       affinity:
         nodeAffinity:
+
+          # -------------------------------------------------------
+          # HARD constraints: MUST be GPU node + CUDA >= 12.4
+          # -------------------------------------------------------
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
+              - key: nvidia.com/cuda.runtime.major
+                operator: In
+                values: ["12"]
+              - key: nvidia.com/cuda.runtime.minor
+                operator: Gt
+                values: ["3"]
 
-              # 1. Force L40 GPU
+              # GPU models allowed (names EXACT from Nautilus)
               - key: nvidia.com/gpu.product
                 operator: In
                 values:
-                - NVIDIA-L40
+                  - NVIDIA-L40
+                  - NVIDIA-L4
+                  - Tesla-V100-SXM2-32GB
+                  - Tesla-V100-SXM2-16GB
+                  - Tesla-V100-PCIe-16GB
 
-              # 2. CUDA version: require CUDA 12.4+
-              - key: nvidia.com/cuda.runtime.major
+          # -------------------------------------------------------
+          # SOFT preferences: Rank best → worst
+          # -------------------------------------------------------
+          preferredDuringSchedulingIgnoredDuringExecution:
+
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
                 operator: In
-                values:
-                - "12"
-              - key: nvidia.com/cuda.runtime.minor
-                operator: Gt
-                values:
-                - "3"
+                values: ["NVIDIA-L40"]
+
+          - weight: 90
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: ["Tesla-V100-SXM2-32GB"]
+
+          - weight: 80
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: ["Tesla-V100-SXM2-16GB"]
+
+          - weight: 70
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: ["Tesla-V100-PCIe-16GB"]
+
+          - weight: 60
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: ["NVIDIA-L4"]
 
       containers:
       - name: counselgpt-api
         image: mathesh0208/counselgptapi:v12
+        imagePullPolicy: IfNotPresent
 
         ports:
         - containerPort: 8000
