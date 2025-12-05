@@ -12,7 +12,7 @@ spec:
     name: counselgpt-api-cpu
 
   minReplicas: 1     # Start with 1 pod, scale up as needed
-  maxReplicas: 5     # Scale up to 5 CPU pods under load
+  maxReplicas: 3     # Reduced from 5 to 3 (more conservative scaling)
 
   metrics:
   - type: Resource
@@ -20,14 +20,14 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 60   # Scale when CPU > 60%
+        averageUtilization: 70   # Increased from 60% to 70% (scale less aggressively)
   
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 70   # Scale when memory > 70%
+        averageUtilization: 80   # Increased from 70% to 80% (pods stable at ~80%)
 
   behavior:
     scaleUp:

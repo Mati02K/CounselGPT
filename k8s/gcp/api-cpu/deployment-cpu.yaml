@@ -96,7 +96,7 @@ spec:
             ephemeral-storage: "30Gi"
           requests:
             cpu: "2"      # Increased from 1 to 2 for better performance
-            memory: "6Gi"
+            memory: "10Gi"  # Increased from 6Gi to 10Gi (pods using ~8GB)
             ephemeral-storage: "20Gi"
 
         env:

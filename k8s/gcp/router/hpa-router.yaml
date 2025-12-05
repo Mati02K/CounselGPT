@@ -10,20 +10,20 @@ spec:
     kind: Deployment
     name: counselgpt-router
   minReplicas: 1
-  maxReplicas: 5
+  maxReplicas: 3  # Reduced from 5 to 3 (router is lightweight)
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 70
+        averageUtilization: 75  # Increased from 70% to 75%
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 85  # Increased from 80% to 85% (currently at 87%)
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 30
