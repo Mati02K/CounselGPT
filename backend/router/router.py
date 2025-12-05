@@ -57,7 +57,7 @@ requests_duration = Histogram(
     'router_request_duration_seconds',
     'Request duration',
     ['backend'],
-    buckets=(1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180)  # Match API buckets for LLM inference
+    buckets=(1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360, 420, 480, 540, 600)  # Up to 10 min
 )
 
 gpu_queue_size = Gauge(

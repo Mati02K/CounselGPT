@@ -76,6 +76,20 @@ class InferResponse(BaseModel):
 
 
 # -----------------------------
+# METRICS ENDPOINT
+# -----------------------------
+@app.get("/metrics")
+def metrics_endpoint():
+    """Prometheus metrics endpoint"""
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from fastapi.responses import Response
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST
+    )
+
+
+# -----------------------------
 # HEALTH CHECK
 # -----------------------------
 @app.get("/health")
