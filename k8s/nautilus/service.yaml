@@ -11,14 +11,17 @@ spec:
   selector:
     app: counselgpt-redis-mthiruma
   ports:
-  - name: redis
-    port: 6379
-    targetPort: 6379
-
-  - name: embeddings
+  - name: http
     port: 8000
     targetPort: 8000
+  # - name: redis
+  #   port: 6379
+  #   targetPort: 6379
 
-  - name: metrics   # Redis Exporter
-    port: 9121
-    targetPort: 9121
+  # - name: embeddings
+  #   port: 8000
+  #   targetPort: 8000
+
+  # - name: metrics   # Redis Exporter
+  #   port: 9121
+  #   targetPort: 9121

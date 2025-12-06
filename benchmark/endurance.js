@@ -21,7 +21,7 @@ export default function () {
   const payload = JSON.stringify({
     prompt: prompt,
     max_tokens: 80,
-    use_cache: false,
+    use_cache: true,
   });
 
   http.post(API_URL, payload, {

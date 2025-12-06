@@ -61,7 +61,7 @@ gcloud container clusters resize counselgpt-cluster \
 
 
 k6 run loadtest.js -e API_URL=$API_URL_NAUTILUS > results/loadtest.txt
-k6 run soaktest.js -e API_URL=$API_URL_NAUTILUS > results/soaktest.txt
+k6 run spiketest.js -e API_URL=$API_URL_NAUTILUS > results/spiketest.txt
 k6 run soaktest.js -e API_URL=$API_URL_NAUTILUS > results/soaktest.txt
 k6 run stresstest.js -e API_URL=$API_URL_NAUTILUS > results/stresstest.txt
 k6 run endurance.js -e API_URL=$API_URL_NAUTILUS > results/endurance.txt

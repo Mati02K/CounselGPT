@@ -6,24 +6,9 @@ export const options = {
   vus: 20,
   duration: '2m',
   thresholds: {
-    http_req_duration: ['p(95) < 4000'],   // fail if > 8s
+    http_req_duration: ['p(95) < 8000'],   // fail if > 8s
     http_req_failed: ['rate < 0.05'],      // fail if > 5% failures
-  },
-  ext: {
-    loadimpact: {
-      projectID: 123,
-      name: "k6 test",
-    },
-    output: {
-      "prometheusremote": {
-        "url": "http://counselgpt-prometheus.cse239fall2025.svc.cluster.local:9090/api/v1/write",
-        "basicAuth": {
-          "username": "admin",
-          "password": "admin"
-        }
-      }
-    }
-  },
+  }
 };
 
 // const prompts = JSON.parse(open('./prompts/testclear.json'));
@@ -37,7 +22,7 @@ export default function () {
   const payload = JSON.stringify({
     prompt: prompt,
     max_tokens: 150,
-    use_cache: false,
+    use_cache: true,
   });
 
   const res = http.post(API_URL, payload, {

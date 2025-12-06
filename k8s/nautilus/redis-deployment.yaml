@@ -1,138 +1,64 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: counselgpt-redis-mthiruma
+  name: redis-counselgpt-mthiruma
   namespace: cse239fall2025
+  labels:
+    app: redis-mthiruma
+
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: counselgpt-redis-mthiruma
+      app: redis-mthiruma
+
   template:
     metadata:
       labels:
-        app: counselgpt-redis-mthiruma
+        app: redis-mthiruma
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9121"
+
     spec:
+      containers:
 
-      # ---------------------
-      # INIT CONTAINER
-      # ---------------------
-      initContainers:
-      - name: download-models
-        image: google/cloud-sdk:slim
-        command:
-        - sh
-        - -c
-        - |
-          echo "[INIT] Downloading embedding model..."
-          mkdir -p /models/semantic
+      # -----------------------------
+      # Redis Stack
+      # -----------------------------
+      - name: redis
+        image: redis/redis-stack-server:latest
+        ports:
+        - containerPort: 6379
 
-          apt-get update && apt-get install -y unzip
-
-          echo "Downloading model zip..."
-          gsutil cp gs://counselgpt-models/all-MiniLM-L6-v2.zip /models/semantic/
-
-          echo "Unzipping..."
-          unzip -o /models/semantic/all-MiniLM-L6-v2.zip -d /models/semantic/
-
-          echo "Normalizing folder structure..."
-
-          # Case 1: Extracted into tmp folder
-          if [ -d "/models/semantic/tmp/all-MiniLM-L6-v2" ]; then
-            mv /models/semantic/tmp/all-MiniLM-L6-v2 /models/semantic/
-            rm -rf /models/semantic/tmp
-          fi
-
-          # Case 2: Double nested
-          if [ -d "/models/semantic/all-MiniLM-L6-v2/all-MiniLM-L6-v2" ]; then
-            mv /models/semantic/all-MiniLM-L6-v2/all-MiniLM-L6-v2/* /models/semantic/all-MiniLM-L6-v2/
-          fi
-
-          # Case 3: Unexpected folder name like all-MiniLM-L6-v2-main
-          first=$(ls /models/semantic | head -n 1)
-          if [ "$first" != "all-MiniLM-L6-v2" ]; then
-            mv "/models/semantic/$first" /models/semantic/all-MiniLM-L6-v2
-          fi
-
-          echo "Cleanup..."
-          rm /models/semantic/all-MiniLM-L6-v2.zip
-
-          echo "[INIT] Finished. Contents:"
-          ls -R /models/semantic
+        env:
+        - name: REDIS_ARGS
+          value: "--maxmemory 2gb --maxmemory-policy allkeys-lru"
 
         resources:
           requests:
             cpu: "100m"
             memory: "1Gi"
           limits:
-            cpu: "200m"
-            memory: "1Gi"
+            cpu: "500m"
+            memory: "3Gi"
 
         volumeMounts:
-        - name: model-storage
-          mountPath: /models
-
-      containers:
-
-      # ---------------------
-      # REDIS STACK
-      # ---------------------
-      - name: redis
-        image: redis/redis-stack-server:latest
-        ports:
-        - containerPort: 6379
-        args: ["redis-server", "/etc/redis/redis.conf"]
-
-        resources:
-          requests:
-            cpu: "200m"
-            memory: "2Gi"
-          limits:
-            cpu: "1"
-            memory: "4Gi"
-
-        volumeMounts:
-        - name: redis-config
-          mountPath: /etc/redis
         - name: redis-data
           mountPath: /data
-        - name: model-storage        # <-- FIX ADDED
-          mountPath: /models
+        - name: redis-config
+          mountPath: /etc/redis
 
-      # ---------------------
-      # EMBEDDING SERVICE
-      # ---------------------
-      - name: embeddings
-        image: mathesh0208/semanticembedding:v1
-        ports:
-        - containerPort: 8000
-
-        env:
-        - name: EMBEDDING_MODEL
-          value: "/models/semantic/all-MiniLM-L6-v2"
-
-        resources:
-          requests:
-            cpu: "200m"
-            memory: "512Mi"
-          limits:
-            cpu: "1"
-            memory: "2Gi"
-
-        volumeMounts:
-        - name: model-storage
-          mountPath: /models
-
-      # ---------------------
-      # REDIS EXPORTER
-      # ---------------------
+      # -----------------------------
+      # Redis Exporter (Prometheus)
+      # -----------------------------
       - name: redis-exporter
         image: oliver006/redis_exporter:latest
         ports:
         - containerPort: 9121
-
+        
         env:
         - name: REDIS_ADDR
           value: "localhost:6379"
@@ -140,26 +66,19 @@ spec:
         resources:
           requests:
             cpu: "50m"
-            memory: "128Mi"
+            memory: "64Mi"
           limits:
             cpu: "200m"
-            memory: "256Mi"
+            memory: "128Mi"
 
-        volumeMounts:
-        - name: model-storage
-          mountPath: /models
-
-      # ---------------------
-      # VOLUMES
-      # ---------------------
+      # -----------------------------
+      # Volumes
+      # -----------------------------
       volumes:
-      - name: redis-config
-        configMap:
-          name: counselgpt-redis-config
-
       - name: redis-data
         persistentVolumeClaim:
-          claimName: counselgpt-redis-pvc
+          claimName: redis-cache-data-mthiruma
 
-      - name: model-storage
-        emptyDir: {}
+      - name: redis-config
+        configMap:
+          name: redis-cache-config-mthiruma

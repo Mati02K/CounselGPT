@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: redis-cache-data-mthiruma
+  name: embedding-models-pvc-mthiruma
   namespace: cse239fall2025
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: rook-ceph-block
   resources:
     requests:
-      storage: 10Gi
-  storageClassName: rook-ceph-block
+      storage: 5Gi

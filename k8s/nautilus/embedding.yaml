@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embeddings-counselgpt-mthiruma
+  namespace: cse239fall2025
+  labels:
+    app: embeddings-counselgpt-mthiruma
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: embeddings-counselgpt-mthiruma
+
+  template:
+    metadata:
+      labels:
+        app: embeddings-counselgpt-mthiruma
+
+    spec:
+
+      # -----------------------------
+      # Init Container (Download model)
+      # -----------------------------
+      initContainers:
+      - name: download-models
+        image: google/cloud-sdk:slim
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /models/semantic
+          apt-get update && apt-get install -y unzip
+
+          echo "[INIT] Downloading model..."
+          gsutil cp gs://counselgpt-models/all-MiniLM-L6-v2.zip /models/semantic/
+
+          echo "[INIT] Unzipping..."
+          unzip -o /models/semantic/all-MiniLM-L6-v2.zip -d /models/semantic/
+
+          echo "[INIT] Normalizing directory structure..."
+
+          # If extracted to tmp/all-MiniLM-L6-v2 (your current case)
+          if [ -d "/models/semantic/tmp/all-MiniLM-L6-v2" ]; then
+              mv /models/semantic/tmp/all-MiniLM-L6-v2 /models/semantic/
+              rm -rf /models/semantic/tmp
+          fi
+
+          # Some zips extract to deeper folder like all-MiniLM-L6-v2/all-MiniLM-L6-v2
+          if [ -d "/models/semantic/all-MiniLM-L6-v2/all-MiniLM-L6-v2" ]; then
+              mv /models/semantic/all-MiniLM-L6-v2/all-MiniLM-L6-v2/* /models/semantic/all-MiniLM-L6-v2/
+          fi
+
+          rm /models/semantic/all-MiniLM-L6-v2.zip
+
+          echo "[INIT] Final directory:"
+          ls -R /models/semantic
+
+        volumeMounts:
+        - name: embedding-storage
+          mountPath: /models
+
+        resources:      # <-- REQUIRED IN NAUTILUS
+          requests:
+            cpu: "100m"
+            memory: "512Mi"
+          limits:
+            cpu: "300m"
+            memory: "1Gi"
+
+      # -----------------------------
+      # Main Embedding Service Container
+      # -----------------------------
+      containers:
+      - name: embeddings
+        image: mathesh0208/semanticembedding:v2
+        ports:
+        - containerPort: 8000
+
+        env:
+        - name: EMBEDDING_MODEL
+          value: "/models/semantic/all-MiniLM-L6-v2"
+
+        volumeMounts:
+        - name: embedding-storage
+          mountPath: /models
+
+        resources:      # <-- REQUIRED IN NAUTILUS
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+
+      # -----------------------------
+      # Volume
+      # -----------------------------
+      volumes:
+      - name: embedding-storage
+        persistentVolumeClaim:
+          claimName: embedding-models-pvc-mthiruma
