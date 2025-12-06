@@ -2,147 +2,176 @@
   "title": "CounselGPT - Clean LLM Metrics Dashboard",
   "timezone": "browser",
   "schemaVersion": 35,
-  "version": 2,
+  "version": 6,
   "tags": ["counselgpt", "llm", "inference"],
   "panels": [
+
     {
       "id": 1,
       "type": "stat",
       "title": "Average Inference Latency (5m)",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "rate(inference_duration_seconds_sum[5m]) / clamp_min(rate(inference_duration_seconds_count[5m]), 1)"
+          "expr": "rate(inference_duration_seconds_sum{job=\"counselgpt-api\"}[5m]) / clamp_min(rate(inference_duration_seconds_count{job=\"counselgpt-api\"}[5m]), 1)"
         }
       ]
     },
+
     {
       "id": 2,
       "type": "timeseries",
       "title": "P50 / P90 / P99 Latency (seconds)",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum(rate(inference_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.5, sum(rate(inference_duration_seconds_bucket{job=\"counselgpt-api\"}[5m])) by (le))",
           "legendFormat": "P50"
         },
         {
-          "expr": "histogram_quantile(0.9, sum(rate(inference_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.9, sum(rate(inference_duration_seconds_bucket{job=\"counselgpt-api\"}[5m])) by (le))",
           "legendFormat": "P90"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(inference_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(inference_duration_seconds_bucket{job=\"counselgpt-api\"}[5m])) by (le))",
           "legendFormat": "P99"
         }
       ]
     },
+
     {
-      "id": 3,
-      "type": "stat",
-      "title": "Total Tokens Generated (All Time)",
+      "id": 99,
+      "type": "timeseries",
+      "title": "P50 / P90 / P95 / P99 Latency (5m Window)",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
       "targets": [
         {
-          "expr": "sum(tokens_generated_total)"
+          "expr": "histogram_quantile(0.50, sum(increase(inference_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P50 (5m)"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(increase(inference_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P90 (5m)"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(increase(inference_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P95 (5m)"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(increase(inference_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P99 (5m)"
         }
       ]
     },
+
     {
       "id": 4,
       "type": "timeseries",
       "title": "Tokens Generated Per Second",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 6 },
       "targets": [
         {
-          "expr": "sum(rate(tokens_generated_total[1m]))",
+          "expr": "sum(rate(tokens_generated_total{job=\"counselgpt-api\"}[1m]))",
           "legendFormat": "tokens/sec"
         }
       ]
     },
+
     {
       "id": 30,
       "type": "stat",
       "title": "Total Tokens Generated (Last 5 Minutes)",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 6 },
       "targets": [
         {
-          "expr": "sum(rate(tokens_generated_total[5m])) * 300"
+          "expr": "sum(increase(tokens_generated_total{job=\"counselgpt-api\"}[5m]))"
         }
       ]
     },
+
     {
       "id": 12,
       "type": "stat",
       "title": "Average Tokens Per Request (5m)",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 6 },
       "targets": [
         {
-          "expr": "sum(rate(tokens_generated_total[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 1)"
+          "expr": "sum(rate(tokens_generated_total{job=\"counselgpt-api\"}[5m])) / clamp_min(sum(rate(http_requests_total{job=\"counselgpt-api\",handler=\"/infer\"}[5m])), 1)"
         }
       ]
     },
+
+    {
+      "id": 41,
+      "type": "stat",
+      "title": "Cache Hit Ratio (All Time)",
+      "datasource": "prometheus",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "sum(cache_hits_total{job=\"counselgpt-api\"}) / clamp_min(sum(cache_hits_total{job=\"counselgpt-api\"}) + sum(cache_misses_total{job=\"counselgpt-api\"}), 1)"
+        }
+      ]
+    },
+
     {
       "id": 5,
       "type": "gauge",
       "title": "Cache Hit Ratio (5m)",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 12 },
       "options": { "minValue": 0, "maxValue": 1 },
       "targets": [
         {
-          "expr": "sum(rate(cache_hits_total[5m])) / clamp_min(sum(rate(cache_hits_total[5m])) + sum(rate(cache_misses_total[5m])), 1)"
+          "expr": "sum(increase(cache_hits_total{job=\"counselgpt-api\"}[5m])) / clamp_min(sum(increase(cache_hits_total{job=\"counselgpt-api\"}[5m])) + sum(increase(cache_misses_total{job=\"counselgpt-api\"}[5m])), 1)"
         }
       ]
     },
+
     {
       "id": 6,
       "type": "timeseries",
       "title": "Cache Hits vs Misses",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 12 },
       "targets": [
-        { "expr": "sum(rate(cache_hits_total[1m]))", "legendFormat": "hits/sec" },
-        { "expr": "sum(rate(cache_misses_total[1m]))", "legendFormat": "misses/sec" }
+        {
+          "expr": "sum(rate(cache_hits_total{job=\"counselgpt-api\"}[1m]))",
+          "legendFormat": "hits/sec"
+        },
+        {
+          "expr": "sum(rate(cache_misses_total{job=\"counselgpt-api\"}[1m]))",
+          "legendFormat": "misses/sec"
+        }
       ]
     },
+
     {
       "id": 7,
       "type": "timeseries",
       "title": "HTTP Requests Per Second",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 18 },
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total[1m]))",
+          "expr": "sum(rate(http_requests_total{job=\"counselgpt-api\"}[1m]))",
           "legendFormat": "req/sec"
         }
       ]
     },
-    {
-      "id": 8,
-      "type": "timeseries",
-      "title": "HTTP Status Codes",
-      "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
-      "targets": [
-        {
-          "expr": "sum(rate(http_requests_total[1m])) by (status)",
-          "legendFormat": "status {{status}}"
-        }
-      ]
-    },
+
     {
       "id": 9,
       "type": "timeseries",
-      "title": "CPU Usage Per Pod (API only)",
+      "title": "CPU Usage Per Pod",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 18 },
       "targets": [
         {
           "expr": "sum(rate(process_cpu_seconds_total{job=\"counselgpt-api\"}[1m])) by (instance)",
@@ -150,12 +179,13 @@
         }
       ]
     },
+
     {
       "id": 10,
       "type": "timeseries",
-      "title": "Memory Usage (RSS bytes, API only)",
+      "title": "Memory Usage (RSS)",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 18 },
       "targets": [
         {
           "expr": "process_resident_memory_bytes{job=\"counselgpt-api\"}",
@@ -163,54 +193,44 @@
         }
       ]
     },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "In-Progress HTTP Requests",
-      "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
-      "targets": [
-        {
-          "expr": "sum(http_requests_inprogress) by (handler)",
-          "legendFormat": "{{handler}}"
-        }
-      ]
-    },
+
     {
       "id": 20,
       "type": "timeseries",
       "title": "GC Collections Per Second",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 24 },
       "targets": [
         {
-          "expr": "rate(python_gc_collections_total[1m])",
+          "expr": "rate(python_gc_collections_total{job=\"counselgpt-api\"}[1m])",
           "legendFormat": "gen {{generation}}"
         }
       ]
     },
+
     {
       "id": 21,
       "type": "timeseries",
       "title": "Open File Descriptors",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 24 },
       "targets": [
         {
-          "expr": "process_open_fds",
+          "expr": "process_open_fds{job=\"counselgpt-api\"}",
           "legendFormat": "{{instance}}"
         }
       ]
     },
+
     {
       "id": 22,
       "type": "timeseries",
       "title": "Virtual Memory Usage",
       "datasource": "prometheus",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 40 },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 24 },
       "targets": [
         {
-          "expr": "process_virtual_memory_bytes",
+          "expr": "process_virtual_memory_bytes{job=\"counselgpt-api\"}",
           "legendFormat": "{{instance}}"
         }
       ]

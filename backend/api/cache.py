@@ -23,7 +23,7 @@ class ResponseCache:
 
         logger.setLevel(logging.INFO)
         self.redis_url = redis_url
-        self.embedding_url = embedding_url
+        self.embedding_url = os.getenv("EMBEDDING_URL", embedding_url)
         self.retry_delay = retry_delay
         
         # Load threshold from env or use default

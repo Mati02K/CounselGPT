@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: counselgpt-redis-mthiruma
+  name: redis-counselgpt-mthiruma
   namespace: cse239fall2025
   annotations:
     prometheus.io/scrape: "true"

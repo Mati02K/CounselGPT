@@ -101,3 +101,4 @@ talk about future vLLM
 think about cooldown in HPA.
 put all in table
 talk about GFlops and GPU's being Used.
+Understand how all metrics in dashboard are derived especially tokens

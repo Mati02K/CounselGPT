@@ -91,7 +91,7 @@ spec:
 
       containers:
       - name: counselgpt-api
-        image: mathesh0208/counselgptapi:v13
+        image: mathesh0208/counselgptapi:v14
         imagePullPolicy: IfNotPresent
 
         ports:
@@ -121,12 +121,12 @@ spec:
         - name: LLM_N_THREADS
           value: "8"
         - name: REDIS_URL
-          value: "redis://counselgpt-redis-mthiruma:6379"
+          value: "redis://redis-counselgpt-mthiruma:6379"
         - name: EMBEDDING_URL
-          value: "http://counselgpt-redis-mthiruma:8000"
+          value: "http://counselgpt-embeddings-mthiruma.cse239fall2025.svc.cluster.local:8000"
         - name: USE_SEMANTIC_CACHE
           value: "true"
-        - name: SIMILARITY_THRESHOLD
+        - name: SEMANTIC_CACHE_THRESHOLD
           value: "0.95"
 
         volumeMounts:

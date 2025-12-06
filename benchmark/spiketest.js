@@ -4,8 +4,8 @@ import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 export const options = {
   stages: [
     { duration: '2s', target: 0 },    // idle
-    { duration: '2s', target: 3000 },   // INSTANT SPIKE to 30 VUs
-    { duration: '15s', target: 3000 },  // HOLD high load
+    { duration: '2s', target: 10000 },   // INSTANT SPIKE to 30 VUs
+    { duration: '15s', target: 10000 },  // HOLD high load
     { duration: '2s', target: 0 },    // DROP to zero
   ],
   thresholds: {
