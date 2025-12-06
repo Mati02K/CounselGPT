@@ -127,7 +127,7 @@ spec:
         - name: USE_SEMANTIC_CACHE
           value: "true"
         - name: SEMANTIC_CACHE_THRESHOLD
-          value: "0.95"
+          value: "0.85"
 
         volumeMounts:
         - name: model-volume

@@ -102,3 +102,17 @@ think about cooldown in HPA.
 put all in table
 talk about GFlops and GPU's being Used.
 Understand how all metrics in dashboard are derived especially tokens
+
+GCP Grafana :- https://34.111.194.27.nip.io/grafana/login
+Nautilus own Grafana :- https://grafana-mathesh.nrp-nautilus.io/d/cf69ukbzmuw3kf/counselgpt-clean-llm-metrics-dashboard?orgId=1&from=now-5m&to=now
+Nautilus cloud Grafana :- https://grafana.nrp-nautilus.io/d/dRG9q0Ymz/k8s-compute-resources-namespace-gpus?var-namespace=cse239fall2025&orgId=1&from=now-5m&to=now&timezone=browser&refresh=1d&var-Filters=
+
+Tests planned :-
+1. Qwen GPU Acceleration true without cache on normal prompts on all 4 tests, (Load, Stress, Soak, Spike and endurance) 
+2. llama (4 bit) GPU Acceleration true without cache on normal prompts on all 4 tests, (Load, Stress, Soak, Spike and endurance) 
+3. Qwen with no GPU Acceleration (false) without cache on normal prompts on load test alone.
+4. Llama with no GPU Acceleration (false) without cache on normal prompts on load test alone. 
+5. Qwen GPU Acceleration true with cache on similar prompts on all 4 tests, (Load, Stress, Soak, Spike and endurance) 
+6. llama (4 bit) GPU Acceleration true with cache on similar prompts on all 4 tests, (Load, Stress, Soak, Spike and endurance) 
+8. Qwen GPU Acceleration true without cache on large resoning prompts on load tests. 
+9. llama (4 bit) GPU Acceleration true without cache on large resoning prompts on load tests.

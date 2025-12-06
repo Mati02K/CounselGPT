@@ -1,0 +1,82 @@
+{
+  "qwen_gpu_on_nautilus_small": {
+    "model": "qwen",
+    "use_gpu": true,
+    "use_cache": false,
+    "max_tokens": 150,
+    "api_url": "https://counselgpt-mathesh.nrp-nautilus.io/infer",
+    "prompts": "./config/prompts/small.json"
+  },
+
+  "qwen_gpu_on_gcp_small": {
+    "model": "qwen",
+    "use_gpu": true,
+    "use_cache": false,
+    "max_tokens": 150,
+    "api_url": "https://34.111.194.27.nip.io/infer",
+    "prompts": "./config/prompts/small.json"
+  },
+
+  "qwen_gpu_off_nautilus_small": {
+    "model": "qwen",
+    "use_gpu": false,
+    "use_cache": false,
+    "max_tokens": 150,
+    "api_url": "https://counselgpt-mathesh.nrp-nautilus.io/infer",
+    "prompts": "./config/prompts/small.json"
+  },
+
+  "llama_gpu_on_nautilus_small": {
+    "model": "llama",
+    "use_gpu": true,
+    "use_cache": false,
+    "max_tokens": 150,
+    "api_url": "https://counselgpt-mathesh.nrp-nautilus.io/infer",
+    "prompts": "./config/prompts/small.json"
+  },
+
+  "llama_gpu_on_gcp_small": {
+    "model": "llama",
+    "use_gpu": true,
+    "use_cache": false,
+    "max_tokens": 150,
+    "api_url": "https://34.111.194.27.nip.io/infer",
+    "prompts": "./config/prompts/small.json"
+  },
+
+  "qwen_cache_nautilus_similar": {
+    "model": "qwen",
+    "use_gpu": true,
+    "use_cache": true,
+    "max_tokens": 150,
+    "api_url": "https://counselgpt-mathesh.nrp-nautilus.io/infer",
+    "prompts": "./config/prompts/similar.json"
+  },
+
+  "llama_cache_gcp_similar": {
+    "model": "llama",
+    "use_gpu": true,
+    "use_cache": true,
+    "max_tokens": 150,
+    "api_url": "https://34.111.194.27.nip.io/infer",
+    "prompts": "./config/prompts/similar.json"
+  },
+
+  "qwen_large_nautilus": {
+    "model": "qwen",
+    "use_gpu": true,
+    "use_cache": false,
+    "max_tokens": 300,
+    "api_url": "https://counselgpt-mathesh.nrp-nautilus.io/infer",
+    "prompts": "./config/prompts/large.json"
+  },
+
+  "llama_large_gcp": {
+    "model": "llama",
+    "use_gpu": true,
+    "use_cache": false,
+    "max_tokens": 300,
+    "api_url": "https://34.111.194.27.nip.io/infer",
+    "prompts": "./config/prompts/large.json"
+  }
+}
