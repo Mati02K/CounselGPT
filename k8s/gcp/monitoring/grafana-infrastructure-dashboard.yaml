@@ -1250,6 +1250,26 @@ data:
                     "value": {
                       "type": "color-text"
                     }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "yellow",
+                          "value": 75
+                        },
+                        {
+                          "color": "red",
+                          "value": 90
+                        }
+                      ]
+                    }
                   }
                 ]
               },
@@ -1267,6 +1287,26 @@ data:
                     "id": "custom.cellOptions",
                     "value": {
                       "type": "color-text"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "yellow",
+                          "value": 70
+                        },
+                        {
+                          "color": "red",
+                          "value": 90
+                        }
+                      ]
                     }
                   }
                 ]
@@ -1332,6 +1372,17 @@ data:
               "instant": true,
               "legendFormat": "__auto",
               "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"default\",pod=~\"counselgpt.*\",container!=\"\"}[5m])) by (pod) / on(pod,namespace,container) sum(container_spec_cpu_quota{namespace=\"default\",pod=~\"counselgpt.*\",container!=\"\"} > 0 / container_spec_cpu_period{namespace=\"default\",pod=~\"counselgpt.*\",container!=\"\"}) by (pod) * 100",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "refId": "D"
             }
           ],
           "title": "Pod Resource Summary",
@@ -1350,44 +1401,54 @@ data:
                   "Time 1": true,
                   "Time 2": true,
                   "Time 3": true,
+                  "Time 4": true,
                   "__name__": true,
                   "__name__ 1": true,
                   "__name__ 2": true,
                   "__name__ 3": true,
+                  "__name__ 4": true,
                   "container": true,
                   "container 1": true,
                   "container 2": true,
                   "container 3": true,
+                  "container 4": true,
                   "id": true,
                   "id 1": true,
                   "id 2": true,
                   "id 3": true,
+                  "id 4": true,
                   "image": true,
                   "image 1": true,
                   "image 2": true,
                   "image 3": true,
+                  "image 4": true,
                   "instance": true,
                   "instance 1": true,
                   "instance 2": true,
                   "instance 3": true,
+                  "instance 4": true,
                   "job": true,
                   "job 1": true,
                   "job 2": true,
                   "job 3": true,
+                  "job 4": true,
                   "name": true,
                   "name 1": true,
                   "name 2": true,
                   "name 3": true,
+                  "name 4": true,
                   "namespace": true,
                   "namespace 1": true,
                   "namespace 2": true,
-                  "namespace 3": true
+                  "namespace 3": true,
+                  "namespace 4": true
                 },
                 "indexByName": {},
                 "renameByName": {
                   "Value #A": "CPU Cores",
                   "Value #B": "Memory",
                   "Value #C": "Memory %",
+                  "Value #D": "CPU %",
                   "pod": "Pod"
                 }
               }
