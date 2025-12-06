@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: counselgpt-redis-config
+  namespace: cse239fall2025
+data:
+  redis.conf: |
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+
+    # Memory (2GB for cache)
+    maxmemory 2gb
+    maxmemory-policy allkeys-lru
+
+    # Persistence (RDB)
+    save 900 1
+    save 300 10
+    save 60 10000
+
+    dbfilename dump.rdb
+    dir /data
+
+    # Append-only OFF (too slow)
+    appendonly no
+
+    # Performance & eviction
+    lazyfree-lazy-eviction yes
+    lazyfree-lazy-expire yes
+    lazyfree-lazy-server-del yes
+
+    # Networking
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 60
+
+    # Logging
+    loglevel notice
+
+    # Threading for vector search
+    io-threads 4
+    io-threads-do-reads yes

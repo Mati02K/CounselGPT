@@ -5,6 +5,8 @@ metadata:
   namespace: cse239fall2025
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: counselgpt-redis-mthiruma
@@ -13,17 +15,151 @@ spec:
       labels:
         app: counselgpt-redis-mthiruma
     spec:
-      containers:
-      - name: redis
-        image: redis:7-alpine
-        ports:
-        - containerPort: 6379
+
+      # ---------------------
+      # INIT CONTAINER
+      # ---------------------
+      initContainers:
+      - name: download-models
+        image: google/cloud-sdk:slim
+        command:
+        - sh
+        - -c
+        - |
+          echo "[INIT] Downloading embedding model..."
+          mkdir -p /models/semantic
+
+          apt-get update && apt-get install -y unzip
+
+          echo "Downloading model zip..."
+          gsutil cp gs://counselgpt-models/all-MiniLM-L6-v2.zip /models/semantic/
+
+          echo "Unzipping..."
+          unzip -o /models/semantic/all-MiniLM-L6-v2.zip -d /models/semantic/
+
+          echo "Normalizing folder structure..."
+
+          # Case 1: Extracted into tmp folder
+          if [ -d "/models/semantic/tmp/all-MiniLM-L6-v2" ]; then
+            mv /models/semantic/tmp/all-MiniLM-L6-v2 /models/semantic/
+            rm -rf /models/semantic/tmp
+          fi
+
+          # Case 2: Double nested
+          if [ -d "/models/semantic/all-MiniLM-L6-v2/all-MiniLM-L6-v2" ]; then
+            mv /models/semantic/all-MiniLM-L6-v2/all-MiniLM-L6-v2/* /models/semantic/all-MiniLM-L6-v2/
+          fi
+
+          # Case 3: Unexpected folder name like all-MiniLM-L6-v2-main
+          first=$(ls /models/semantic | head -n 1)
+          if [ "$first" != "all-MiniLM-L6-v2" ]; then
+            mv "/models/semantic/$first" /models/semantic/all-MiniLM-L6-v2
+          fi
+
+          echo "Cleanup..."
+          rm /models/semantic/all-MiniLM-L6-v2.zip
+
+          echo "[INIT] Finished. Contents:"
+          ls -R /models/semantic
+
         resources:
           requests:
             cpu: "100m"
-            memory: "256Mi"
+            memory: "1Gi"
           limits:
-            cpu: "500m"
+            cpu: "200m"
+            memory: "1Gi"
+
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+
+      containers:
+
+      # ---------------------
+      # REDIS STACK
+      # ---------------------
+      - name: redis
+        image: redis/redis-stack-server:latest
+        ports:
+        - containerPort: 6379
+        args: ["redis-server", "/etc/redis/redis.conf"]
+
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "2Gi"
+          limits:
+            cpu: "1"
+            memory: "4Gi"
+
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis
+        - name: redis-data
+          mountPath: /data
+        - name: model-storage        # <-- FIX ADDED
+          mountPath: /models
+
+      # ---------------------
+      # EMBEDDING SERVICE
+      # ---------------------
+      - name: embeddings
+        image: mathesh0208/semanticembedding:v1
+        ports:
+        - containerPort: 8000
+
+        env:
+        - name: EMBEDDING_MODEL
+          value: "/models/semantic/all-MiniLM-L6-v2"
+
+        resources:
+          requests:
+            cpu: "200m"
             memory: "512Mi"
-        # Pure cache → no persistence needed
-        args: ["redis-server", "--save", "", "--appendonly", "no"]
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+
+      # ---------------------
+      # REDIS EXPORTER
+      # ---------------------
+      - name: redis-exporter
+        image: oliver006/redis_exporter:latest
+        ports:
+        - containerPort: 9121
+
+        env:
+        - name: REDIS_ADDR
+          value: "localhost:6379"
+
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+
+      # ---------------------
+      # VOLUMES
+      # ---------------------
+      volumes:
+      - name: redis-config
+        configMap:
+          name: counselgpt-redis-config
+
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: counselgpt-redis-pvc
+
+      - name: model-storage
+        emptyDir: {}

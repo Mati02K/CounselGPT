@@ -1,16 +1,38 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: counselgpt-monitor
+  name: counselgpt-api-monitor
   namespace: cse239fall2025
+  labels:
+    release: prometheus
 spec:
   selector:
     matchLabels:
       app: counselgpt-api-mthiruma
   namespaceSelector:
     matchNames:
-      - cse239fall2025
+    - cse239fall2025
   endpoints:
   - port: http
     path: /metrics
     interval: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: semantic-cache-monitor
+  namespace: cse239fall2025
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: counselgpt-redis-mthiruma
+  namespaceSelector:
+    matchNames:
+    - cse239fall2025
+  endpoints:
+  - port: metrics      # Redis Exporter port (9121)
+    path: /metrics
+    interval: 10s
+    scrapeTimeout: 5s
