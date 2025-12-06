@@ -145,6 +145,13 @@ spec:
         app: prometheus
     spec:
       serviceAccountName: prometheus
+      initContainers:
+      - name: fix-permissions
+        image: busybox:latest
+        command: ['sh', '-c', 'chown -R 65534:65534 /prometheus && chmod 777 /prometheus']
+        volumeMounts:
+        - name: storage
+          mountPath: /prometheus
       containers:
       - name: prometheus
         image: prom/prometheus:latest
@@ -188,7 +195,8 @@ spec:
         configMap:
           name: prometheus-config
       - name: storage
-        emptyDir: {}  # Use PVC for production
+        persistentVolumeClaim:
+          claimName: prometheus-storage
 ---
 apiVersion: v1
 kind: Service
