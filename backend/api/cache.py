@@ -14,7 +14,7 @@ class ResponseCache:
     def __init__(
         self, 
         redis_url: str = "redis://localhost:6379",
-        embedding_url: str = "http://counselgpt-redis:8000",
+        embedding_url: str = "http://counselgpt-embeddings:8000",
         use_semantic: bool = True,
         similarity_threshold: float = 0.95,
         retry_delay: float = 5.0

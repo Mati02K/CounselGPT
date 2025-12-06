@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: redis-cache-config
   labels:
-    app: semantic-cache
+    app: redis
 data:
   redis.conf: |
     # Network

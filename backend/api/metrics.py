@@ -1,11 +1,36 @@
-from prometheus_client import Counter, Histogram, Info
-from prometheus_fastapi_instrumentator import Instrumentator, metrics
+import time
+from prometheus_client import Counter, Histogram, Gauge
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 # ----------------- METRICS DEFINITIONS -----------------
 
+# HTTP Request Metrics
+HTTP_REQUESTS_TOTAL = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "handler", "status"]
+)
+
+HTTP_REQUEST_DURATION = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request latencies in seconds",
+    ["method", "handler"],
+    buckets=(1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360, 420, 480, 540, 600)  # Up to 10 min
+)
+
+HTTP_REQUESTS_INPROGRESS = Gauge(
+    "http_requests_inprogress",
+    "HTTP requests in progress",
+    
+    ["method", "handler"]
+)
+
+# Inference Metrics
 INFERENCE_TIME = Histogram(
     "inference_duration_seconds",
-    "Time spent generating model responses"
+    "Time spent generating model responses",
+    buckets=(1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360, 420, 480, 540, 600)  # Up to 10 min
 )
 
 TOKENS_GENERATED = Counter(
@@ -23,59 +48,52 @@ CACHE_MISSES = Counter(
     "Total number of cache misses"
 )
 
+# ----------------- MIDDLEWARE -----------------
+
+class PrometheusMiddleware(BaseHTTPMiddleware):
+    """Manual Prometheus middleware to track HTTP requests"""
+    
+    async def dispatch(self, request: Request, call_next):
+        # Skip metrics and health endpoints (health checks create noise)
+        if request.url.path in ["/metrics", "/health"]:
+            return await call_next(request)
+        
+        method = request.method
+        handler = request.url.path
+        
+        # Track in-progress requests
+        HTTP_REQUESTS_INPROGRESS.labels(method=method, handler=handler).inc()
+        
+        # Track request duration
+        start_time = time.time()
+        
+        try:
+            response = await call_next(request)
+            status = response.status_code
+        except Exception as e:
+            status = 500
+            raise
+        finally:
+            # Record metrics
+            duration = time.time() - start_time
+            HTTP_REQUEST_DURATION.labels(method=method, handler=handler).observe(duration)
+            HTTP_REQUESTS_TOTAL.labels(method=method, handler=handler, status=status).inc()
+            HTTP_REQUESTS_INPROGRESS.labels(method=method, handler=handler).dec()
+        
+        return response
+
 # ----------------- FASTAPI HOOK -----------------
 
 def add_metrics_middleware(app):
     """
-    Attach Prometheus Instrumentator to FastAPI
-    Exposes /metrics endpoint with http_requests_total and http_request_duration_seconds
+    Add manual Prometheus middleware to track HTTP requests
     """
     from logging import getLogger
     logger = getLogger("metrics")
     
-    logger.info("Initializing Prometheus metrics instrumentation...")
+    logger.info("Initializing Prometheus metrics middleware...")
     
-    instrumentator = Instrumentator(
-        should_group_status_codes=False,  # Keep exact status codes (200, 404, 500, etc.)
-        should_ignore_untemplated=False,
-        should_respect_env_var=True,
-        should_instrument_requests_inprogress=True,
-        excluded_handlers=["/metrics"],  # Don't track metrics endpoint itself
-        inprogress_name="http_requests_inprogress",
-        inprogress_labels=True,
-    )
+    # Add our custom middleware
+    app.add_middleware(PrometheusMiddleware)
     
-    # Add custom metric: http_requests_total with status codes
-    # This creates a Counter that tracks all requests by method, path, and status
-    def http_requests_total() -> callable:
-        METRIC = Counter(
-            "http_requests_total",
-            "Total HTTP requests",
-            labelnames=["method", "handler", "status"]
-        )
-        
-        def instrumentation(info: metrics.Info) -> None:
-            METRIC.labels(
-                method=info.method,
-                handler=info.modified_handler,
-                status=info.modified_status
-            ).inc()
-        
-        return instrumentation
-    
-    # Add the custom metric
-    instrumentator.add(http_requests_total())
-    
-    # Instrument the app (collects metrics)
-    # This also automatically adds http_request_duration_seconds histogram
-    instrumentator.instrument(app)
-    
-    # Manually expose /metrics endpoint to ensure it's registered correctly
-    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
-    from starlette.responses import Response
-
-    @app.get("/metrics", include_in_schema=True)
-    def metrics_endpoint():
-        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-    
-    logger.info("Prometheus metrics initialized and exposed at /metrics (manual route)")
+    logger.info("Prometheus metrics middleware installed")

@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: counselgpt-redis
   labels:
-    app: semantic-cache
+    app: redis
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "9121"
@@ -11,14 +11,11 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: semantic-cache
+    app: redis
   ports:
   - name: redis
     port: 6379
     targetPort: 6379
-  - name: embeddings
-    port: 8000
-    targetPort: 8000
   - name: metrics
     port: 9121
     targetPort: 9121

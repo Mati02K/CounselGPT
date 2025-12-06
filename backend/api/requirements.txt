@@ -6,4 +6,3 @@ pydantic
 redis
 httpx
 prometheus-client
-prometheus-fastapi-instrumentator

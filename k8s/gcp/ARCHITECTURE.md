@@ -25,15 +25,19 @@
     └───────┬───────┘ │   └───────┬───────┘ │
             │         │           │         │
             └─────────┼───────────┘         │
-                      │                     │
+                      ↓                     │
+         ┌────────────┴────────────┐        │
+         ↓                         ↓        │
+  ┌─────────────┐          ┌──────────────┐ │
+  │   Redis     │          │  Embeddings  │ │ /metrics (Redis only)
+  │   (Cache)   │          │  (Semantic)  │ │
+  │  Port 6379  │          │  Port 8000   │ │
+  └──────┬──────┘          └──────┬───────┘ │
+         │                        │         │
+         └────────────────────────┘         │
                       ↓                     │
               ┌────────────────┐            │
-              │ Semantic Cache │ (Redis)    │
-              │  + Embeddings  │───────┐    │ /metrics
-              └────────┬───────┘       │    │
-                       ↓               │    │
-              ┌────────────────┐       │    │
-              │   Model PVC    │       ↓    ↓
+              │   Model PVC    │            ↓
               │  Qwen + Llama  │   ┌──────────────┐
               └────────────────┘   │  Prometheus  │
                                    │  (scrapes)   │
@@ -53,16 +57,17 @@
 | **Router** | 2-5 | Smart GPU-first routing | ~$20 |
 | **GPU Backend** | 1 | Fast inference (CUDA) | ~$360 |
 | **CPU Backend** | 2-5 | Slow inference (fallback) | ~$100 |
-| **Semantic Cache** | 1 | Redis with embeddings | ~$6 |
+| **Redis** | 1 | Cache storage + metrics | ~$3 |
+| **Embeddings** | 1 | Semantic embedding service | ~$3 |
 | **Monitoring** | 2 | Prometheus + Grafana | ~$8 |
 | **Model Storage** | - | Filestore (ReadWriteMany) | ~$200 |
-| **Total** | 7-14 | - | **~$694** |
+| **Total** | 8-15 | - | **~$694** |
 
 ## Request Flow
 
 ### Cache Hit (Fast Path)
 ```
-User → Router → GPU Pod → Semantic Cache
+User → Router → GPU Pod → Redis Cache
                            ↓ (HIT!)
                 User ← Router ← GPU Pod ← Cache
                 
@@ -71,10 +76,13 @@ Latency: ~50ms
 
 ### Cache Miss (Inference Path)
 ```
-User → Router → GPU Pod → Semantic Cache
+User → Router → GPU Pod → Redis Cache
                 ↓ (MISS)    ↓ (no match)
+                │           ↓
+                │     Get Embedding (Embeddings Service)
+                │           ↓
                 Load Model → Run Inference
-                ↓
+                ↓           ↓
                 Store in Cache (with embedding)
                 ↓
 User ← Router ← Response
@@ -117,10 +125,11 @@ Latency: ~20s
 
 ### Semantic Cache Lookup
 ```
-1. User prompt → Generate embedding (5-10ms)
-2. Search cached embeddings (cosine similarity)
-3. If similarity ≥ 95% → Return cached response
-4. Else → Run inference → Cache result + embedding
+1. User prompt → Call Embeddings Service (5-10ms)
+2. Embeddings Service → Generate 384-dim vector
+3. API → Search Redis for similar embeddings (cosine similarity)
+4. If similarity ≥ 95% → Return cached response
+5. Else → Run inference → Store in Redis with embedding
 ```
 
 ### Model Loading
@@ -147,6 +156,11 @@ Latency: ~20s
 - Cache disabled
 - All requests run inference
 - Slower, higher cost
+- System still functional
+
+### Embeddings Service Down
+- Semantic cache disabled (exact match only)
+- Lower cache hit rate
 - System still functional
 
 ### PVC Unavailable

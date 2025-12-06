@@ -81,10 +81,34 @@ data:
         relabel_configs:
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep
-            regex: semantic-cache
+            regex: redis
           - source_labels: [__meta_kubernetes_pod_container_port_name]
             action: keep
             regex: metrics
+      
+      # DCGM GPU metrics
+      - job_name: 'dcgm-exporter'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: dcgm-exporter
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            action: replace
+            target_label: node
       
       # Kubernetes pod/container metrics (cAdvisor via kubelet)
       - job_name: 'kubernetes-cadvisor'

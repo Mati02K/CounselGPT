@@ -5,7 +5,7 @@ options:
 substitutions:
   _IMAGE_PATH: "us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/counselgptapi"
   _ROUTER_IMAGE: "us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/counselgpt-router"
-  _EMBEDDING_IMAGE: "us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/semantic-embeddings"
+  _EMBEDDING_IMAGE: "us-central1-docker.pkg.dev/applied-syntax-479504-j6/counselgpt-image/embeddings"
 
 steps:
   # ========================================
@@ -83,14 +83,14 @@ steps:
     args:
       - 'build'
       - '-f'
-      - 'backend/semantic-cache/Dockerfile.semantic'
+      - 'backend/embeddings/Dockerfile.embeddings'
       - '-t'
       - '${_EMBEDDING_IMAGE}:${SHORT_SHA}'
       - '-t'
       - '${_EMBEDDING_IMAGE}:latest'
       - '--cache-from'
       - '${_EMBEDDING_IMAGE}:latest'
-      - 'backend/semantic-cache'
+      - 'backend/embeddings'
 
   # ========================================
   # 2. PUSH PHASE (after builds complete)
@@ -190,15 +190,19 @@ steps:
         sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:gpu-${SHORT_SHA}|g" k8s/gcp/api-gpu/deployment-gpu.yaml
         sed -i "s|REPLACE_IMAGE|${_IMAGE_PATH}:cpu-${SHORT_SHA}|g" k8s/gcp/api-cpu/deployment-cpu.yaml
         sed -i "s|REPLACE_ROUTER_IMAGE|${_ROUTER_IMAGE}:${SHORT_SHA}|g" k8s/gcp/router/deployment.yaml
-        sed -i "s|REPLACE_EMBEDDING_IMAGE|${_EMBEDDING_IMAGE}:${SHORT_SHA}|g" k8s/gcp/semantic-cache/deployment.yaml
+        sed -i "s|REPLACE_EMBEDDING_IMAGE|${_EMBEDDING_IMAGE}:${SHORT_SHA}|g" k8s/gcp/embeddings/deployment.yaml
         
         # Apply infrastructure (PVC for models)
         echo "📦 Applying infrastructure..."
         kubectl apply -f k8s/gcp/infrastructure/
         
-        # Apply semantic cache (Redis Stack + Embeddings)
-        echo "🗄️  Deploying semantic cache..."
-        kubectl apply -f k8s/gcp/semantic-cache/
+        # Apply embeddings (deployment + service)
+        echo "🗄️  Deploying embeddings service..."
+        kubectl apply -f k8s/gcp/embeddings/
+
+        # Apply redis (deployment + service)
+        echo "🗄️  Deploying redis cache..."
+        kubectl apply -f k8s/gcp/redis/
         
         # Apply GPU backend (deployment + service)
         echo "🎮 Deploying GPU backend..."
