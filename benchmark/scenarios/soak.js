@@ -1,8 +1,8 @@
 import { runTest } from "../common.js";
 
 export const options = {
-  vus: 5,
-  duration: "30m",   // or 1hr depending on what you want
+  vus: 15,
+  duration: "10m",   // small endurance test as such
 };
 
 export default function () {

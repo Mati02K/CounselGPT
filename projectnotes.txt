@@ -116,3 +116,19 @@ Tests planned :-
 6. llama (4 bit) GPU Acceleration true with cache on similar prompts on all 4 tests, (Load, Stress, Soak, Spike and endurance) 
 8. Qwen GPU Acceleration true without cache on large resoning prompts on load tests. 
 9. llama (4 bit) GPU Acceleration true without cache on large resoning prompts on load tests.
+
+
+Clear Cache req :-
+curl -X POST https://counselgpt-mathesh.nrp-nautilus.io/cache/clear
+curl -X POST https://34.111.194.27.nip.io/cache/clear
+
+
+NOtes during testing :-
+1. Soak Fails in GCP
+2. Spike also fails in GCP
+MAX VUS supported by Nautilius is roughly 25
+Llama fails for same Max VUS in LLama in stress test --> Need to check why
+Similar test -> Load can be considered initial few queries where latency is that much but after that it drops down to ms.
+Logs seems suprisingly stale for some reason, however no issues in code. 
+And when restarted it is proper. Some memory issues or it could be hanged.
+I highly suspect there is a huge bug in the way we load model.

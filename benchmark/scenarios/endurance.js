@@ -1,7 +1,7 @@
 import { runTest } from "../common.js";
 
 export const options = {
-  vus: 2,
+  vus: 15,
   duration: "2h"
 };
 
