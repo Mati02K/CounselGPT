@@ -45,7 +45,7 @@ benchmark/
 └── README.md                # Documentation
 ```
 
-✔ **`modelBenchmark/` is kept, but NOT used for cloud testing.**
+✔ **`modelBenchmark/` is kept for model testing, but NOT used for cloud testing.**
 ✔ Cloud tests only use **config/**, **scenarios/**, **common.js**, and **results/**.
 
 ---
@@ -95,7 +95,7 @@ You select which configuration to run via:
 Example config key:
 
 ```
-qwen_gpu_on_nautilus_small
+qwen_gpu_on_nautilus
 ```
 
 ---
@@ -111,7 +111,7 @@ All scenarios import `common.js`, which handles:
 Run any scenario like:
 
 ```bash
-k6 run scenarios/load.js -e CONFIG=qwen_gpu_on_nautilus_small > results/qwen_gpu_on_nautilus_load.txt
+k6 run scenarios/load.js -e CONFIG=qwen_gpu_on_nautilus > results/qwen_gpu_on_nautilus_load.txt
 ```
 
 ---
@@ -128,44 +128,44 @@ results/<config>_<scenario>.txt
 
 ---
 
-# **TEST GROUP 1: Qwen, GPU ON, No Cache, Small Prompts**
+# **TEST GROUP 1: Qwen, GPU ON, No Cache, Normal Prompts**
 
 Run on: load, stress, soak, spike, endurance
 
 ```
-k6 run scenarios/load.js      -e CONFIG=qwen_gpu_on_nautilus_small > results/qwen_gpu_on_nautilus_small_load.txt
-k6 run scenarios/stress.js    -e CONFIG=qwen_gpu_on_nautilus_small > results/qwen_gpu_on_nautilus_small_stress.txt
-k6 run scenarios/soak.js      -e CONFIG=qwen_gpu_on_nautilus_small > results/qwen_gpu_on_nautilus_small_soak.txt
-k6 run scenarios/spike.js     -e CONFIG=qwen_gpu_on_nautilus_small > results/qwen_gpu_on_nautilus_small_spike.txt
-k6 run scenarios/endurance.js -e CONFIG=qwen_gpu_on_nautilus_small > results/qwen_gpu_on_nautilus_small_endurance.txt
+k6 run scenarios/load.js -e CONFIG=qwen_gpu_on_nautilus > results/qwen_nautilus_load.txt
+k6 run scenarios/spike.js -e CONFIG=qwen_gpu_on_nautilus > results/qwen_nautilus_spike.txt
+k6 run scenarios/soak.js -e CONFIG=qwen_gpu_on_nautilus > results/qwen_nautilus_soak.txt
+k6 run scenarios/stress.js -e CONFIG=qwen_gpu_on_nautilus > results/qwen_nautilus_stress.txt
+k6 run scenarios/endurance.js -e CONFIG=qwen_gpu_on_nautilus > results/qwen_nautilus_endurance.txt
 ```
 
 ---
 
-# **TEST GROUP 2: Llama (4-bit), GPU ON, No Cache, Small Prompts**
+# **TEST GROUP 2: Llama (4-bit), GPU ON, No Cache, Normal Prompts**
 
 ```
-k6 run scenarios/load.js      -e CONFIG=llama_gpu_on_nautilus_small > results/llama_gpu_on_nautilus_small_load.txt
-k6 run scenarios/stress.js    -e CONFIG=llama_gpu_on_nautilus_small > results/llama_gpu_on_nautilus_small_stress.txt
-k6 run scenarios/soak.js      -e CONFIG=llama_gpu_on_nautilus_small > results/llama_gpu_on_nautilus_small_soak.txt
-k6 run scenarios/spike.js     -e CONFIG=llama_gpu_on_nautilus_small > results/llama_gpu_on_nautilus_small_spike.txt
-k6 run scenarios/endurance.js -e CONFIG=llama_gpu_on_nautilus_small > results/llama_gpu_on_nautilus_small_endurance.txt
-```
-
----
-
-# **TEST GROUP 3: Qwen GPU OFF, No Cache, Small Prompts (Load Test Only)**
-
-```
-k6 run scenarios/load.js -e CONFIG=qwen_gpu_off_nautilus_small > results/qwen_gpu_off_nautilus_small_load.txt
+k6 run scenarios/load.js      -e CONFIG=llama_gpu_on_nautilus > results/llama_gpu_on_nautilus_load.txt
+k6 run scenarios/stress.js    -e CONFIG=llama_gpu_on_nautilus > results/llama_gpu_on_nautilus_stress.txt
+k6 run scenarios/soak.js      -e CONFIG=llama_gpu_on_nautilus > results/llama_gpu_on_nautilus_soak.txt
+k6 run scenarios/spike.js     -e CONFIG=llama_gpu_on_nautilus > results/llama_gpu_on_nautilus_spike.txt
+k6 run scenarios/endurance.js -e CONFIG=llama_gpu_on_nautilus > results/llama_gpu_on_nautilus_endurance.txt
 ```
 
 ---
 
-# **TEST GROUP 4: Llama GPU OFF, No Cache, Small Prompts (Load Only)**
+# **TEST GROUP 3: Qwen GPU OFF, No Cache, Normal Prompts (Load Test Only)**
 
 ```
-k6 run scenarios/load.js -e CONFIG=llama_gpu_off_nautilus_small > results/llama_gpu_off_nautilus_small_load.txt
+k6 run scenarios/load.js -e CONFIG=qwen_gpu_off_nautilus > results/qwen_gpu_off_nautilus_load.txt
+```
+
+---
+
+# **TEST GROUP 4: Llama GPU OFF, No Cache, Normal Prompts (Load Only)**
+
+```
+k6 run scenarios/load.js -e CONFIG=llama_gpu_off_nautilus > results/llama_gpu_off_nautilus_load.txt
 ```
 
 ---
@@ -184,30 +184,51 @@ k6 run scenarios/endurance.js -e CONFIG=qwen_cache_nautilus_similar > results/qw
 
 ---
 
-# **TEST GROUP 6: Llama GPU ON, Cache ON, Similar Prompts**
+# **TEST GROUP 6: Qwen GPU ON, No Cache, Large Reasoning Prompts (Load Only)**
 
 ```
-k6 run scenarios/load.js      -e CONFIG=llama_cache_gcp_similar > results/llama_cache_gcp_similar_load.txt
-k6 run scenarios/stress.js    -e CONFIG=llama_cache_gcp_similar > results/llama_cache_gcp_similar_stress.txt
-k6 run scenarios/soak.js      -e CONFIG=llama_cache_gcp_similar > results/llama_cache_gcp_similar_soak.txt
-k6 run scenarios/spike.js     -e CONFIG=llama_cache_gcp_similar > results/llama_cache_gcp_similar_spike.txt
-k6 run scenarios/endurance.js -e CONFIG=llama_cache_gcp_similar > results/llama_cache_gcp_similar_endurance.txt
+k6 run scenarios/load.js -e CONFIG=qwen_large > results/qwen_large_load.txt
 ```
 
 ---
 
-# **TEST GROUP 8: Qwen GPU ON, No Cache, Large Reasoning Prompts (Load Only)**
+# **TEST GROUP 7: Llama GPU ON, No Cache, Large Reasoning Prompts (Load Only)**
 
 ```
-k6 run scenarios/load.js -e CONFIG=qwen_large_nautilus > results/qwen_large_nautilus_load.txt
+k6 run scenarios/load.js -e CONFIG=llama_large > results/llama_large_load.txt
 ```
 
 ---
 
-# **TEST GROUP 9: Llama GPU ON, No Cache, Large Reasoning Prompts (Load Only)**
+# **TEST GROUP 8: GCP vs Nautilus**
 
+Nautilus -> take the results from step 1.
+
+GCP
 ```
-k6 run scenarios/load.js -e CONFIG=llama_large_gcp > results/llama_large_gcp_load.txt
+k6 run scenarios/load.js -e CONFIG=qwen_gpu_on_gcp > results/qwen_gcp_load.txt
+k6 run scenarios/spike.js -e CONFIG=qwen_gpu_on_gcp > results/qwen_gcp_spike.txt
+k6 run scenarios/soak.js -e CONFIG=qwen_gpu_on_gcp > results/qwen_gcp_soak.txt
+k6 run scenarios/stress.js -e CONFIG=qwen_gpu_on_gcp > results/qwen_gcp_stress.txt
+```
+
+---
+
+
+# **TEST GROUP 9: Small Prompts**
+
+Nautilus
+```
+k6 run scenarios/load.js -e CONFIG=qwen_gpu_on_nautilus_small > results/qwen_nautilus_small_load.txt
+k6 run scenarios/spike.js -e CONFIG=qwen_gpu_on_nautilus_small > results/qwen_nautilus_small_spike.txt
+k6 run scenarios/stress.js -e CONFIG=qwen_gpu_on_nautilus_small > results/qwen_nautilus_small_stress.txt
+```
+
+GCP
+```
+k6 run scenarios/load.js -e CONFIG=qwen_gpu_on_gcp_small > results/qwen_gcp_small_load.txt
+k6 run scenarios/spike.js -e CONFIG=qwen_gpu_on_gcp_small > results/qwen_gcp_small_spike.txt
+k6 run scenarios/stress.js -e CONFIG=qwen_gpu_on_gcp_small > results/qwen_gcp_small_stress.txt
 ```
 
 ---
