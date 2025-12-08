@@ -21,25 +21,4 @@ spec:
       target:
         type: Utilization
         averageUtilization: 70   # Increased from 60% to 70% (scale less aggressively)
-  
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80   # Increased from 70% to 80% (pods stable at ~80%)
-
-  behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 60    # Wait 60s before scaling up
-      policies:
-      - type: Pods
-        value: 2
-        periodSeconds: 60               # Add max 2 pods per minute
-    scaleDown:
-      stabilizationWindowSeconds: 300   # Wait 5min before scaling down
-      policies:
-      - type: Pods
-        value: 1
-        periodSeconds: 120              # Remove max 1 pod per 2 minutes
 
