@@ -62,6 +62,15 @@
     "prompts": "./config/prompts/small.json"
   },
 
+  "qwen_nautilus_similar": {
+    "model": "qwen",
+    "use_gpu": true,
+    "use_cache": false,
+    "max_tokens": 150,
+    "api_url": "https://counselgpt-mathesh.nrp-nautilus.io/infer",
+    "prompts": "./config/prompts/similar.json"
+  },
+
   "qwen_cache_nautilus_similar": {
     "model": "qwen",
     "use_gpu": true,

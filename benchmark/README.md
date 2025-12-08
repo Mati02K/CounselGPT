@@ -172,14 +172,12 @@ k6 run scenarios/load.js -e CONFIG=llama_gpu_off_nautilus > results/llama_gpu_of
 
 # **TEST GROUP 5: Qwen GPU ON, Cache ON, Similar Prompts**
 
-(load, stress, soak, spike, endurance)
+(load, spike)
 
 ```
-k6 run scenarios/load.js      -e CONFIG=qwen_cache_nautilus_similar > results/qwen_cache_nautilus_similar_load.txt
-k6 run scenarios/stress.js    -e CONFIG=qwen_cache_nautilus_similar > results/qwen_cache_nautilus_similar_stress.txt
-k6 run scenarios/soak.js      -e CONFIG=qwen_cache_nautilus_similar > results/qwen_cache_nautilus_similar_soak.txt
-k6 run scenarios/spike.js     -e CONFIG=qwen_cache_nautilus_similar > results/qwen_cache_nautilus_similar_spike.txt
-k6 run scenarios/endurance.js -e CONFIG=qwen_cache_nautilus_similar > results/qwen_cache_nautilus_similar_endurance.txt
+k6 run scenarios/load.js      -e CONFIG=qwen_nautilus_similar > results/qwen_cache_off_nautilus_similar_load.txt
+k6 run scenarios/load.js      -e CONFIG=qwen_cache_nautilus_similar > results/qwen_cache_on_nautilus_similar_load.txt
+k6 run scenarios/soak.js      -e CONFIG=qwen_cache_nautilus_similar > results/qwen_cache_on_nautilus_similar_soak.txt
 ```
 
 ---

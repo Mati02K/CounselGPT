@@ -132,3 +132,45 @@ Similar test -> Load can be considered initial few queries where latency is that
 Logs seems suprisingly stale for some reason, however no issues in code. 
 And when restarted it is proper. Some memory issues or it could be hanged.
 I highly suspect there is a huge bug in the way we load model.
+
+Chart intepretations :-
+1. GCP failed at 8 VUS at 1 min with 3% failed rate. We can say allowed error rate was 5%
+  We can serve at most 1 RPS in nautilus 
+  We can say our VUS was around 37 or 38 with close 1% failure rate
+
+
+In small queries we are looking at 2.43 seconds 
+In large reasoing we are looking at 0.3 seconds
+
+Why Qwen can be faster even at higher bit width
+
+Qwen2.5 architecture is more optimized
+Newer attention, rotary, activation, and KV-cache patterns → fewer FLOPs per token.
+
+Qwen has better training and tokenizer efficiency
+Fewer tokens needed for same output → faster end-to-end latency.
+
+Your model is running on GPU layers
+When most layers are on GPU, the difference between 4-bit and 8-bit becomes small.
+
+llama.cpp Q4_K_M is not as fast as it looks
+Q4_K_M compresses well but can be slower at runtime because of:
+
+more complex dequant math
+
+additional dequant compute per layer
+
+poor GPU util on some cards
+
+Your Qwen LoRA adapter may be lightweight
+Little overhead added.
+
+
+For final observations
+
+1. HPA did help but not much and model load in HPA is a big issue
+
+Complete Nautilus Readme  
+State of the Art addition in Readme
+CPU Utilization Chart
+Cost calculation
