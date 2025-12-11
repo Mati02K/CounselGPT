@@ -2892,29 +2892,84 @@ def test_with_server():
         return False
     
     # Index document
-    print("\nIndexing document...")
-    resp = requests.post(f"{BASE_URL}/rag/index", json={
-        "text": SAMPLE_LEASE,
-        "document_id": "test_lease",
-        "use_semantic_chunking": True
-    })
-    print(f"   Response: {resp.json()}")
+    print("\n[2] Indexing sample lease document...")
+    try:
+        resp = requests.post(f"{BASE_URL}/rag/index", json={
+            "text": SAMPLE_LEASE,
+            "document_id": "test_lease",
+            "use_semantic_chunking": True,
+            "max_chunk_size": 512
+        })
+        if resp.status_code != 200:
+            print(f"    ✗ Indexing failed: {resp.status_code} - {resp.text}")
+            return False
+        result = resp.json()
+        print(f"    ✓ Indexed: {result['num_chunks']} chunks created")
+    except Exception as e:
+        print(f"    ✗ Indexing failed: {e}")
+        return False
     
-    # Query
-    print("\nQuerying: 'What is the monthly rent?'")
-    resp = requests.post(f"{BASE_URL}/rag/query", json={
-        "query": "What is the monthly rent?",
-        "top_k": 3
-    })
-    result = resp.json()
-    print(f"   Found {len(result['results'])} results")
-    for r in result['results']:
-        print(f"   [{r['rank']}] Score: {r['score']:.3f}")
+    # Test queries
+    print("\n[3] Testing queries...")
+    print("-" * 60)
     
-    # Stats
-    print("\nRAG Stats:")
-    resp = requests.get(f"{BASE_URL}/rag/stats")
-    print(json.dumps(resp.json(), indent=2))
+    for query in TEST_QUERIES:
+        print(f"\n📝 Query: \"{query}\"")
+        
+        try:
+            # Query via HTTP
+            resp = requests.post(f"{BASE_URL}/rag/query", json={
+                "query": query,
+                "top_k": 2,
+                "use_reranking": True
+            })
+            
+            if resp.status_code != 200:
+                print(f"   ✗ Query failed: {resp.status_code} - {resp.text}")
+                continue
+                
+            result = resp.json()
+            results = result.get('results', [])
+            context = result.get('context', '')
+            
+            print(f"   Found {len(results)} results:")
+            for r in results:
+                # Get scores (handle cases where they might not be present)
+                bm25_score = r.get('bm25_score', 0.0)
+                dense_score = r.get('dense_score', 0.0)
+                score = r.get('score', 0.0)
+                
+                print(f"   [{r.get('rank', 0)}] Score: {score:.3f} | "
+                      f"BM25: {bm25_score:.2f} | "
+                      f"Dense: {dense_score:.2f}")
+                
+                # Format text as proper sentences - show full text without truncation
+                text = r.get('text', '').strip()
+                # Clean up excessive whitespace: normalize multiple spaces/newlines to single space
+                text = re.sub(r'\s+', ' ', text)
+                # Ensure proper spacing after sentence-ending punctuation
+                text = re.sub(r'([.!?])([A-Za-z])', r'\1 \2', text)
+                # Display full text with proper formatting (no truncation, no ellipsis)
+                print(f"       {text}")
+            
+        except Exception as e:
+            print(f"   ✗ Query failed: {e}")
+    
+    # Show stats
+    print("\n" + "-" * 60)
+    print("\n[4] RAG Service Stats:")
+    try:
+        resp = requests.get(f"{BASE_URL}/rag/stats")
+        if resp.status_code == 200:
+            print(json.dumps(resp.json(), indent=2))
+        else:
+            print(f"   ✗ Failed to get stats: {resp.status_code}")
+    except Exception as e:
+        print(f"   ✗ Failed to get stats: {e}")
+    
+    print("\n" + "=" * 60)
+    print("✅ RAG HTTP API Test Complete!")
+    print("=" * 60)
     
     return True
 

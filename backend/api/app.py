@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from modelclass import CounselGPTModel
+# Lazy import: modelclass only imported when /infer endpoint is called
+# This allows RAG endpoints to work without requiring llama-cpp-python
+# from modelclass import CounselGPTModel
 from cache import ResponseCache
 from metrics import (
     INFERENCE_TIME,
@@ -388,6 +390,8 @@ def infer(req: InferRequest):
     # Run Inference Using ModelFactory
     # -----------------------------
     try:
+        # Lazy import - only load when /infer endpoint is called
+        from modelclass import CounselGPTModel
         model = CounselGPTModel(model_name=req.model_name, use_gpu=req.use_gpu)
 
         start_time = time.time()
