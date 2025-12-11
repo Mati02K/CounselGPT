@@ -174,3 +174,34 @@ Complete Nautilus Readme
 State of the Art addition in Readme
 CPU Utilization Chart
 Cost calculation
+Talk about TTFT (time to first token)
+
+Things to add in report
+
+- Cost calculation
+- Cache v/s Tokens (proper graph)
+- GPU per watt
+- 8 bit vs 4 bit GPU Utilization also memory
+
+
+curl -X POST "https://counselgpt-mathesh.nrp-nautilus.io/infer" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Explain how constitutional due process applies when a state attempts to restrict individual rights during a declared emergency. Provide a structured legal analysis.",
+    "max_tokens": 250,
+    "use_gpu": true,
+    "use_cache": false,
+    "model_name": "qwen"
+  }'
+
+
+
+curl -X POST "https://34.111.194.27.nip.io/infer" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Explain how constitutional due process applies when a state attempts to restrict individual rights during a declared emergency. Provide a structured legal analysis.",
+    "max_tokens": 250,
+    "use_gpu": true,
+    "use_cache": false,
+    "model_name": "qwen"
+  }'

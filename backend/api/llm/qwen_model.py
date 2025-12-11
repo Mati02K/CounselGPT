@@ -22,9 +22,9 @@ class QwenModel(BaseLlamaModel):
         model_path = os.getenv(
             "QWEN_MODEL_PATH", "/models/qwen/Qwen2.5-7B-Instruct-Q8_0.gguf"
         )
-        lora_path = os.getenv(
-            "QWEN_LORA_PATH", "/models/qwen/legal_lora_adapter_only_25k.gguf"
-        )
+        # lora_path = os.getenv(
+        #     "QWEN_LORA_PATH", "/models/qwen/legal_lora_adapter_only_25k.gguf"
+        # )
 
         # Optimized for L4 GPU - reduce context for faster inference
         ctx = n_ctx or int(os.getenv("QWEN_N_CTX", "2048"))
@@ -44,7 +44,7 @@ class QwenModel(BaseLlamaModel):
             n_ctx=ctx,
             n_gpu_layers=gpu_layers,
             n_threads=threads,
-            lora_paths=[lora_path],
+            # lora_paths=[lora_path],
             lora_scaling=[1.0],
             use_mmap=True,
         )

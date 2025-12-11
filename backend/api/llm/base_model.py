@@ -20,7 +20,8 @@ class BaseLlamaModel:
         self,
         name: str,
         model_path: str,
-        n_ctx: int = 2048,
+        # n_ctx: int = 2048,
+        n_ctx: int = 16384,
         n_gpu_layers: int = 0,
         n_threads: Optional[int] = None,
         lora_paths: Optional[List[str]] = None,
@@ -83,11 +84,12 @@ class BaseLlamaModel:
                 res = self.model(
                     prompt,
                     max_tokens=max_tokens,
-                    temperature=0.7,  # Balanced creativity
+                    # temperature=0.7,  # Balanced creativity
+                    temperature=0,
                     top_p=0.9,  # Nucleus sampling
                     top_k=40,  # Top-K sampling
                     repeat_penalty=1.1,  # Reduce repetition
-                    stop=["<|im_end|>", "<|im_start|>", "User:", "\n\n\n"],  # Qwen chat template stop tokens
+                    stop=["\n", "Q:", "User:", "<|im_end|>", "<|im_start|>", "User:", "\n\n\n"],  # Qwen chat template stop tokens
                     echo=False,  # Don't echo prompt
                 )
                 text = res["choices"][0]["text"].strip()

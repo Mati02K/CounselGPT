@@ -55,7 +55,9 @@ class InferRequest(BaseModel):
     # New: conversation history (preferred)
     messages: Optional[list[Message]] = Field(None, description="Conversation history (preferred over single prompt)")
     # Legacy: single prompt (for backward compatibility)
-    prompt: Optional[str] = Field(None, min_length=1, max_length=4096, description="User prompt/question (legacy)")
+    # prompt: Optional[str] = Field(None, min_length=1, max_length=4096, description="User prompt/question (legacy)")
+    # Fix for training Legal Bench
+    prompt: Optional[str] = Field(None, min_length=1, description="User prompt/question (legacy)")
     max_tokens: int = Field(400, ge=1, le=2048, description="Maximum tokens to generate (default: 400, ~300 words)")
     model_name: str = Field("qwen", description="Model to use: 'qwen' (Qwen2.5-7B with LoRA) or 'llama' (Llama-2-7B)")
     use_gpu: bool = Field(True, description="Use GPU acceleration (recommended)")

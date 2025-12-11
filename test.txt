@@ -1,0 +1,14 @@
+curl -X POST https://counselgpt-mathesh.nrp-nautilus.io/cache/clear
+
+1. Two models 
+
+Who does the term person and whoever include besides individuals, according to the context of Acts of Congress?
+
+2. Cache
+
+Do I need to have my driver's license on hand every time I drive a vehicle?
+Should I always carry my Driver's license while driving?
+Am I required to keep my driver's license with me whenever I'm behind the wheel?
+
+
+k6 run scenarios/endurance.js -e CONFIG=qwen_gpu_on_nautilus > results/qwen_nautilus_endurance.txt

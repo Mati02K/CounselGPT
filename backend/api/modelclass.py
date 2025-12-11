@@ -35,9 +35,14 @@ class CounselGPTModel:
         
         # Build system message with length constraint
         word_budget = max_tokens
+        # system_message = (
+        #     f"{SYSTEM_PROMPT.strip()}\n\n"
+        #     f"IMPORTANT: Keep your response under {word_budget} words. "
+        #     f"Be concise and direct."
+        # )
+        
         system_message = (
             f"{SYSTEM_PROMPT.strip()}\n\n"
-            f"IMPORTANT: Keep your response under {word_budget} words. "
             f"Be concise and direct."
         )
         

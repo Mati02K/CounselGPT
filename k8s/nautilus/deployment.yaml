@@ -91,7 +91,7 @@ spec:
 
       containers:
       - name: counselgpt-api
-        image: mathesh0208/counselgptapi:v14
+        image: mathesh0208/counselgptapi:v16
         imagePullPolicy: IfNotPresent
 
         ports:
