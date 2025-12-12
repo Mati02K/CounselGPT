@@ -400,6 +400,7 @@ def infer(req: InferRequest):
         inference_time = time.time() - start_time
         
         INFERENCE_TIME.observe(inference_time)
+        # Approximate token count (counts words, not actual LLM tokens)
         TOKENS_GENERATED.inc(len(result.split()))
         
         logger.info(f"Inference completed in {inference_time:.2f}s, generated {len(result)} chars")
@@ -410,11 +411,19 @@ def infer(req: InferRequest):
 
     except RuntimeError as e:
         logger.error(f"Inference Runtime Error: {e}")
-        raise HTTPException(status_code=500, detail="Model inference failed")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Model inference failed: {str(e)}")
+
+    except FileNotFoundError as e:
+        logger.error(f"Model file not found: {e}")
+        raise HTTPException(status_code=500, detail=f"Model file not found: {str(e)}")
 
     except Exception as e:
         logger.error(f"Unexpected Error: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
     # -----------------------------
     # Cache Result
